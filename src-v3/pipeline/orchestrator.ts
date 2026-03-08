@@ -16,6 +16,8 @@ import { extractMultipleSnippets } from '../utils/diff.js';
 import { createLogger } from '../utils/logger.js';
 import { makeHeadVerdict, scanUnconfirmedQueue } from '../l3/verdict.js';
 import { writeHeadVerdict } from '../l3/writer.js';
+import { QualityTracker } from '../l0/quality-tracker.js';
+import { BanditStore } from '../l0/bandit-store.js';
 import type { ReviewerInput } from '../l1/reviewer.js';
 import type { EvidenceDocument } from '../types/core.js';
 import fs from 'fs/promises';
@@ -93,6 +95,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     // Write review outputs
     await writeAllReviews(date, sessionId, reviewResults);
 
+    // === QUALITY TRACKING: Record L1 specificity ===
+    const qualityTracker = new QualityTracker();
+    for (const result of reviewResults) {
+      const reviewerConfig = enabledReviewers.find((r) => r.id === result.reviewerId);
+      qualityTracker.recordReviewerOutput(
+        result,
+        reviewerConfig?.provider ?? reviewerConfig?.backend ?? 'unknown',
+        sessionId
+      );
+    }
+
     // === L2 MODERATOR: Discussion Registration ===
     const allEvidenceDocs: EvidenceDocument[] = reviewResults.flatMap(
       (r) => r.evidenceDocs
@@ -138,6 +151,12 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       sessionId,
     });
 
+    // === QUALITY TRACKING: Record L2 discussion results ===
+    qualityTracker.recordDiscussionResults(
+      deduplicated,
+      moderatorReport.discussions
+    );
+
     // Add unconfirmed and suggestions to report
     moderatorReport.unconfirmedIssues = thresholdResult.unconfirmed;
     moderatorReport.suggestions = thresholdResult.suggestions;
@@ -157,6 +176,27 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     // === L3 HEAD: Final Verdict ===
     const headVerdict = makeHeadVerdict(moderatorReport);
     await writeHeadVerdict(date, sessionId, headVerdict);
+
+    // === QUALITY TRACKING: Finalize rewards and persist bandit state ===
+    const rewards = qualityTracker.finalizeRewards();
+    if (rewards.size > 0) {
+      const banditStoreInstance = new BanditStore();
+      await banditStoreInstance.load();
+
+      for (const [, { modelId, provider, reward }] of rewards) {
+        banditStoreInstance.updateArm(`${provider}/${modelId}`, reward);
+      }
+
+      for (const record of qualityTracker.getRecords()) {
+        banditStoreInstance.addHistory(record);
+      }
+
+      await banditStoreInstance.save();
+      logger.info(
+        `Quality feedback: ${rewards.size} reviewers scored, ` +
+        `${[...rewards.values()].filter((r) => r.reward === 1).length} rewarded`
+      );
+    }
 
     // Flush logs
     await logger.flush();

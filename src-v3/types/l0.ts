@@ -106,3 +106,21 @@ export const ModelRouterConfigSchema = z.object({
   explorationRate: z.number().default(0.1),
 });
 export type ModelRouterConfig = z.infer<typeof ModelRouterConfigSchema>;
+
+// ============================================================================
+// Review Record (Quality Tracking)
+// ============================================================================
+
+export interface ReviewRecord {
+  reviewId: string;
+  diffId: string;
+  modelId: string;
+  provider: string;
+  timestamp: number;
+  issuesRaised: number;
+  specificityScore: number;
+  peerValidationRate: number | null;
+  headAcceptanceRate: number | null;
+  compositeQ: number | null;
+  rewardSignal: 0 | 1 | null;
+}

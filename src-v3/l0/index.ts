@@ -4,18 +4,19 @@
  */
 
 import type { AgentConfig, ReviewerEntry } from '../types/config.js';
-import type { ModelRouterConfig } from '../types/l0.js';
+import type { ModelRouterConfig, BanditArm } from '../types/l0.js';
 import type { ReviewerInput } from '../l1/reviewer.js';
 import { getAvailableModels, loadRegistry } from './model-registry.js';
 import { HealthMonitor } from './health-monitor.js';
 import { selectModels, createBanditState } from './model-selector.js';
-import type { BanditArm } from '../types/l0.js';
+import { BanditStore } from './bandit-store.js';
 
 // ============================================================================
 // Module State
 // ============================================================================
 
 let healthMonitor: HealthMonitor | null = null;
+let banditStore: BanditStore | null = null;
 let banditState: Map<string, BanditArm> = createBanditState();
 let initialized = false;
 
@@ -33,6 +34,11 @@ export async function initL0(routerConfig?: ModelRouterConfig): Promise<void> {
     dailyBudget: routerConfig?.dailyBudget,
   });
 
+  // Load persisted bandit state
+  banditStore = new BanditStore();
+  await banditStore.load();
+  banditState = banditStore.getAllArms();
+
   initialized = true;
 }
 
@@ -41,8 +47,16 @@ export async function initL0(routerConfig?: ModelRouterConfig): Promise<void> {
  */
 export function resetL0(): void {
   healthMonitor = null;
+  banditStore = null;
   banditState = createBanditState();
   initialized = false;
+}
+
+/**
+ * Get the active bandit store (for quality feedback persistence).
+ */
+export function getBanditStore(): BanditStore | null {
+  return banditStore;
 }
 
 // ============================================================================
@@ -185,3 +199,6 @@ export { HealthMonitor } from './health-monitor.js';
 export { selectModels, createBanditState, updateBandit } from './model-selector.js';
 export { loadRegistry, getAvailableModels, getAllModels } from './model-registry.js';
 export { extractFamily, isReasoningModel } from './family-classifier.js';
+export { BanditStore } from './bandit-store.js';
+export { QualityTracker } from './quality-tracker.js';
+export { scoreSpecificity, scoreReviewerSpecificity } from './specificity-scorer.js';
