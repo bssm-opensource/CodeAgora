@@ -124,11 +124,41 @@ export const ErrorHandlingSchema = z.object({
 export type ErrorHandling = z.infer<typeof ErrorHandlingSchema>;
 
 // ============================================================================
+// Declarative Reviewers Config (Phase 4)
+// ============================================================================
+
+export const DeclarativeReviewersSchema = z.object({
+  count: z.number().int().min(1).max(10),
+  constraints: z
+    .object({
+      minFamilies: z.number().default(3),
+      reasoning: z
+        .object({
+          min: z.number().default(1),
+          max: z.number().default(2),
+        })
+        .optional(),
+      contextMin: z.string().default('32k'),
+      tierMin: z.string().default('B'),
+      preferProviders: z.array(z.string()).optional(),
+    })
+    .optional(),
+  static: z.array(AgentConfigSchema).optional(),
+});
+export type DeclarativeReviewers = z.infer<typeof DeclarativeReviewersSchema>;
+
+export const ReviewersFieldSchema = z.union([
+  z.array(ReviewerEntrySchema).min(1),
+  DeclarativeReviewersSchema,
+]);
+export type ReviewersField = z.infer<typeof ReviewersFieldSchema>;
+
+// ============================================================================
 // Full Config Schema
 // ============================================================================
 
 export const ConfigSchema = z.object({
-  reviewers: z.array(ReviewerEntrySchema).min(1),
+  reviewers: ReviewersFieldSchema,
   supporters: SupporterPoolConfigSchema,
   moderator: ModeratorConfigSchema,
   discussion: DiscussionSettingsSchema,

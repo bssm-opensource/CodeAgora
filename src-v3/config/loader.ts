@@ -3,7 +3,7 @@
  * Load and validate .ca/config.json
  */
 
-import { Config, validateConfig, type AgentConfig, type ReviewerEntry } from '../types/config.js';
+import { Config, validateConfig, type AgentConfig, type ReviewerEntry, type DeclarativeReviewers } from '../types/config.js';
 import { readJson, getConfigPath } from '../utils/fs.js';
 
 // ============================================================================
@@ -90,4 +90,57 @@ export function checkMinReviewers(
   }
 
   return { valid: true };
+}
+
+// ============================================================================
+// Declarative Config Support (Phase 4)
+// ============================================================================
+
+/**
+ * Check if the reviewers field uses declarative format.
+ */
+export function isDeclarativeReviewers(
+  reviewers: Config['reviewers']
+): reviewers is DeclarativeReviewers {
+  return !Array.isArray(reviewers) && typeof reviewers === 'object' && 'count' in reviewers;
+}
+
+/**
+ * Expand declarative reviewers config into ReviewerEntry array.
+ * Static reviewers are kept as-is, remaining slots become auto reviewers.
+ */
+export function expandDeclarativeReviewers(
+  decl: DeclarativeReviewers
+): ReviewerEntry[] {
+  const entries: ReviewerEntry[] = [];
+
+  // Add static reviewers if present
+  const staticReviewers = decl.static ?? [];
+  entries.push(...staticReviewers);
+
+  // Fill remaining slots with auto reviewers
+  const remaining = decl.count - staticReviewers.length;
+  for (let i = 0; i < remaining; i++) {
+    entries.push({
+      id: `auto-${i + 1}`,
+      auto: true as const,
+      enabled: true,
+    });
+  }
+
+  return entries;
+}
+
+/**
+ * Normalize config: if reviewers is declarative, expand to array.
+ * Returns a config with reviewers always as ReviewerEntry[].
+ */
+export function normalizeConfig(config: Config): Config & { reviewers: ReviewerEntry[] } {
+  if (isDeclarativeReviewers(config.reviewers)) {
+    return {
+      ...config,
+      reviewers: expandDeclarativeReviewers(config.reviewers),
+    };
+  }
+  return config as Config & { reviewers: ReviewerEntry[] };
 }
