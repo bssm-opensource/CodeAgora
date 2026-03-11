@@ -128,10 +128,22 @@ function extractFileInfo(
         `[Parser] Used fuzzy matching: "${problemText.substring(0, 50)}..." -> ${matchedPath}`
       );
 
-      // Try to extract line numbers even if file path failed
-      const lineMatch = problemText.match(/(\d+)(?:-(\d+))?/);
-      const lineStart = lineMatch ? parseInt(lineMatch[1], 10) : 1;
-      const lineEnd = lineMatch && lineMatch[2] ? parseInt(lineMatch[2], 10) : lineStart;
+      // Try to extract line numbers with context clues (avoid matching years/error codes)
+      const linePatterns = [
+        /(?:line\s+)(\d+)(?:\s*-\s*(\d+))?/i,
+        /:(\d+)(?:-(\d+))?/,
+        /(?:lines?\s+)(\d+)(?:\s*(?:-|to)\s*(\d+))?/i,
+      ];
+      let lineStart = 1;
+      let lineEnd = 1;
+      for (const lp of linePatterns) {
+        const lm = problemText.match(lp);
+        if (lm) {
+          lineStart = parseInt(lm[1], 10);
+          lineEnd = lm[2] ? parseInt(lm[2], 10) : lineStart;
+          break;
+        }
+      }
 
       return {
         filePath: matchedPath,

@@ -74,6 +74,19 @@ export async function executeBackend(input: BackendInput): Promise<string> {
 }
 
 // ============================================================================
+// Shell Argument Sanitization
+// ============================================================================
+
+const SAFE_SHELL_ARG = /^[a-zA-Z0-9._\/:@-]+$/;
+
+function sanitizeShellArg(arg: string, name: string): string {
+  if (!SAFE_SHELL_ARG.test(arg)) {
+    throw new Error(`Invalid ${name}: contains unsafe characters — "${arg}"`);
+  }
+  return arg;
+}
+
+// ============================================================================
 // Command Builders
 // ============================================================================
 
@@ -108,25 +121,26 @@ function buildOpenCodeCommand(
   if (!provider) {
     throw new Error('OpenCode backend requires provider parameter');
   }
-  return `cat "${promptFile}" | opencode run -m ${provider}/${model}`;
+  return `cat "${promptFile}" | opencode run -m ${sanitizeShellArg(provider, 'provider')}/${sanitizeShellArg(model, 'model')}`;
 }
 
 function buildCodexCommand(model: string, promptFile: string): string {
   // Codex CLI: stdin pipe with exec command
   // Format: cat prompt.txt | codex exec -
   // The '-' tells codex to read from stdin
-  return `cat "${promptFile}" | codex exec -m ${model} -`;
+  return `cat "${promptFile}" | codex exec -m ${sanitizeShellArg(model, 'model')} -`;
 }
 
 function buildGeminiCommand(model: string, promptFile: string): string {
   // Gemini CLI: -m for model, -p for prompt
   // Format: gemini -m model -p "$(cat prompt.txt)"
-  return `gemini -m ${model} -p "$(cat "${promptFile}")"`;
+  return `gemini -m ${sanitizeShellArg(model, 'model')} -p "$(cat "${promptFile}")"`;
+
 }
 
 function buildClaudeCommand(model: string, promptFile: string): string {
   // Claude Code: Interactive AI coding agent
   // For programmatic usage, pipe prompt to stdin
   // Note: Claude Code is primarily interactive, this is experimental
-  return `cat "${promptFile}" | claude --non-interactive --model ${model}`;
+  return `cat "${promptFile}" | claude --non-interactive --model ${sanitizeShellArg(model, 'model')}`;
 }

@@ -55,8 +55,12 @@ export function scanUnconfirmedQueue(
 } {
   // Simplified: In production, Head (Claude Code) analyzes each one
   // For now, promote CRITICAL, dismiss others
-  const promoted = unconfirmed.filter((doc) => doc.severity === 'CRITICAL');
-  const dismissed = unconfirmed.filter((doc) => doc.severity !== 'CRITICAL');
+  const promoted = unconfirmed.filter(
+    (doc) => doc.severity === 'CRITICAL' || doc.severity === 'HARSHLY_CRITICAL'
+  );
+  const dismissed = unconfirmed.filter(
+    (doc) => doc.severity !== 'CRITICAL' && doc.severity !== 'HARSHLY_CRITICAL'
+  );
 
   return { promoted, dismissed };
 }

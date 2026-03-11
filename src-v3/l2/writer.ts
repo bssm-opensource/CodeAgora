@@ -3,7 +3,7 @@
  * Writes discussion logs and moderator report
  */
 
-import type { Discussion, DiscussionRound, DiscussionVerdict, ModeratorReport } from '../types/core.js';
+import type { Discussion, DiscussionRound, DiscussionVerdict, ModeratorReport, EvidenceDocument } from '../types/core.js';
 import { writeMarkdown, appendMarkdown, getDiscussionsDir, getUnconfirmedDir, getSuggestionsPath, getReportPath } from '../utils/fs.js';
 import path from 'path';
 import { writeFile } from 'fs/promises';
@@ -66,7 +66,7 @@ export async function writeDiscussionVerdict(
 export async function writeSuggestions(
   date: string,
   sessionId: string,
-  suggestions: any[]
+  suggestions: EvidenceDocument[]
 ): Promise<void> {
   const suggestionsPath = getSuggestionsPath(date, sessionId);
 

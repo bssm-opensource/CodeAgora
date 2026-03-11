@@ -95,7 +95,7 @@ describe('Config Validation', () => {
       ...validConfig,
       reviewers: [
         {
-          ...validConfig.reviewers[0],
+          ...(validConfig.reviewers as Array<Record<string, unknown>>)[0],
           backend: 'invalid',
         },
       ],

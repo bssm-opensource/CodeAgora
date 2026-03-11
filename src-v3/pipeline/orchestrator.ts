@@ -4,7 +4,7 @@
  */
 
 import { SessionManager } from '../session/manager.js';
-import { loadConfig, getEnabledReviewers, getEnabledSupporters } from '../config/loader.js';
+import { loadConfig, normalizeConfig } from '../config/loader.js';
 import { groupDiff } from '../l3/grouping.js';
 import { executeReviewers, checkForfeitThreshold } from '../l1/reviewer.js';
 import { writeAllReviews } from '../l1/writer.js';
@@ -17,8 +17,7 @@ import { createLogger } from '../utils/logger.js';
 import { makeHeadVerdict, scanUnconfirmedQueue } from '../l3/verdict.js';
 import { writeHeadVerdict } from '../l3/writer.js';
 import { QualityTracker } from '../l0/quality-tracker.js';
-import { BanditStore } from '../l0/bandit-store.js';
-import type { ReviewerInput } from '../l1/reviewer.js';
+import { resolveReviewers, getBanditStore } from '../l0/index.js';
 import type { EvidenceDocument } from '../types/core.js';
 import fs from 'fs/promises';
 
@@ -41,12 +40,15 @@ export interface PipelineResult {
  * Run complete V3 pipeline
  */
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
+  let session: SessionManager | undefined;
+
   try {
-    // Load config
-    const config = await loadConfig();
+    // Load config and normalize (expand declarative reviewers if needed)
+    const rawConfig = await loadConfig();
+    const config = normalizeConfig(rawConfig);
 
     // Create session
-    const session = await SessionManager.create(input.diffPath);
+    session = await SessionManager.create(input.diffPath);
     const date = session.getDate();
     const sessionId = session.getSessionId();
 
@@ -56,20 +58,22 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     // === L3 HEAD: Diff Grouping ===
     const fileGroups = groupDiff(diffContent);
 
-    // === L1 REVIEWERS: Parallel Execution ===
-    const enabledReviewers = getEnabledReviewers(config);
-
-    // Distribute groups to reviewers (round-robin)
-    const reviewerInputs: ReviewerInput[] = [];
-    for (let i = 0; i < enabledReviewers.length; i++) {
-      const group = fileGroups[i % fileGroups.length];
-      reviewerInputs.push({
-        config: enabledReviewers[i],
-        groupName: group.name,
-        diffContent: group.diffContent,
-        prSummary: group.prSummary,
-      });
+    // Guard: empty diff produces no file groups
+    if (fileGroups.length === 0) {
+      await session.setStatus('completed');
+      return {
+        sessionId,
+        date,
+        status: 'success',
+      };
     }
+
+    // === L1 REVIEWERS: Resolve (L0 model selection for auto reviewers) + Parallel Execution ===
+    const { reviewerInputs } = await resolveReviewers(
+      config.reviewers,
+      fileGroups,
+      config.modelRouter
+    );
 
     const reviewResults = await executeReviewers(
       reviewerInputs,
@@ -98,10 +102,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     // === QUALITY TRACKING: Record L1 specificity ===
     const qualityTracker = new QualityTracker();
     for (const result of reviewResults) {
-      const reviewerConfig = enabledReviewers.find((r) => r.id === result.reviewerId);
+      const reviewerInput = reviewerInputs.find((r) => r.config.id === result.reviewerId);
       qualityTracker.recordReviewerOutput(
         result,
-        reviewerConfig?.provider ?? reviewerConfig?.backend ?? 'unknown',
+        reviewerInput?.config.provider ?? reviewerInput?.config.backend ?? 'unknown',
         sessionId
       );
     }
@@ -170,8 +174,20 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       moderatorReport.unconfirmedIssues
     );
 
-    // Add promoted issues to discussions
-    // (In production, Head would create new discussions or make direct decisions)
+    // Promoted unconfirmed issues count as escalated for Head verdict
+    if (promoted.length > 0) {
+      for (const doc of promoted) {
+        moderatorReport.discussions.push({
+          discussionId: `promoted-${doc.filePath}:${doc.lineRange[0]}`,
+          finalSeverity: doc.severity,
+          reasoning: `Promoted from unconfirmed queue: ${doc.issueTitle}`,
+          consensusReached: false,
+          rounds: 0,
+        });
+      }
+      moderatorReport.summary.escalated += promoted.length;
+      moderatorReport.summary.totalDiscussions += promoted.length;
+    }
 
     // === L3 HEAD: Final Verdict ===
     const headVerdict = makeHeadVerdict(moderatorReport);
@@ -180,8 +196,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     // === QUALITY TRACKING: Finalize rewards and persist bandit state ===
     const rewards = qualityTracker.finalizeRewards();
     if (rewards.size > 0) {
-      const banditStoreInstance = new BanditStore();
-      await banditStoreInstance.load();
+      // Use shared BanditStore from L0 (avoids dual-instance data corruption)
+      let banditStoreInstance = getBanditStore();
+      if (!banditStoreInstance) {
+        // L0 not initialized (no auto reviewers) — create standalone instance
+        const { BanditStore } = await import('../l0/bandit-store.js');
+        banditStoreInstance = new BanditStore();
+        await banditStoreInstance.load();
+      }
 
       for (const [, { modelId, provider, reward }] of rewards) {
         banditStoreInstance.updateArm(`${provider}/${modelId}`, reward);
@@ -210,9 +232,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       status: 'success',
     };
   } catch (error) {
+    // Mark session as failed if it was created
+    if (session) {
+      await session.setStatus('failed').catch(() => {});
+    }
+
     return {
-      sessionId: 'unknown',
-      date: 'unknown',
+      sessionId: session?.getSessionId() ?? 'unknown',
+      date: session?.getDate() ?? 'unknown',
       status: 'error',
       error: error instanceof Error ? error.message : String(error),
     };

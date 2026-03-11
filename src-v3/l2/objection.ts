@@ -25,17 +25,17 @@ export async function checkForObjections(
 ): Promise<ObjectionResult> {
   const objections: Array<{ supporterId: string; reasoning: string }> = [];
 
-  const responses = await Promise.all(
+  const results = await Promise.allSettled(
     supporterConfigs.map((config) =>
       executeSupporterObjectionCheck(config, consensusDeclaration, previousRounds)
     )
   );
 
-  for (const response of responses) {
-    if (response.hasObjection) {
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value.hasObjection) {
       objections.push({
-        supporterId: response.supporterId,
-        reasoning: response.reasoning,
+        supporterId: result.value.supporterId,
+        reasoning: result.value.reasoning,
       });
     }
   }

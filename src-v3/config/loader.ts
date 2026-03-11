@@ -43,8 +43,15 @@ function isStaticReviewer(entry: ReviewerEntry): entry is AgentConfig {
 /**
  * Get enabled static reviewers (excludes auto: true reviewers).
  * Auto reviewers are resolved by L0 in resolveReviewers().
+ * Note: config must be normalized first if using declarative format.
  */
 export function getEnabledReviewers(config: Config): AgentConfig[] {
+  if (!Array.isArray(config.reviewers)) {
+    // Declarative format — no static reviewers available without normalization
+    return (config.reviewers.static ?? []).filter(
+      (r): r is AgentConfig => isStaticReviewer(r) && r.enabled
+    );
+  }
   return config.reviewers.filter(
     (r): r is AgentConfig => isStaticReviewer(r) && r.enabled
   );
@@ -52,8 +59,13 @@ export function getEnabledReviewers(config: Config): AgentConfig[] {
 
 /**
  * Get all enabled reviewer entries (including auto).
+ * Note: config must be normalized first if using declarative format.
  */
 export function getEnabledReviewerEntries(config: Config): ReviewerEntry[] {
+  if (!Array.isArray(config.reviewers)) {
+    // Declarative format — normalize first
+    return expandDeclarativeReviewers(config.reviewers).filter((r) => r.enabled);
+  }
   return config.reviewers.filter((r) => r.enabled);
 }
 

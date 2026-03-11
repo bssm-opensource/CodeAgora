@@ -86,7 +86,6 @@ export const ModelRouterConfigSchema = z.object({
   enabled: z.boolean().default(false),
   strategy: z.enum(['thompson-sampling']).default('thompson-sampling'),
   providers: z.record(z.string(), z.object({
-    apiKey: z.string().optional(),
     enabled: z.boolean().default(true),
   })).optional(),
   constraints: z.object({

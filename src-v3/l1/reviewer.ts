@@ -83,15 +83,41 @@ export async function executeReviewer(
 }
 
 /**
- * Execute multiple reviewers in parallel
+ * Execute multiple reviewers with concurrency limit and graceful degradation
  */
 export async function executeReviewers(
   inputs: ReviewerInput[],
-  maxRetries: number = 2
+  maxRetries: number = 2,
+  concurrency: number = 5
 ): Promise<ReviewOutput[]> {
-  const results = await Promise.all(
-    inputs.map((input) => executeReviewer(input, maxRetries))
-  );
+  const results: ReviewOutput[] = [];
+
+  // Process in batches to avoid 429 rate limit storms
+  for (let i = 0; i < inputs.length; i += concurrency) {
+    const batch = inputs.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(
+      batch.map((input) => executeReviewer(input, maxRetries))
+    );
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const result = batchResults[j];
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        // Unexpected rejection — executeReviewer should catch all errors,
+        // but handle gracefully just in case
+        results.push({
+          reviewerId: batch[j].config.id,
+          model: batch[j].config.model,
+          group: batch[j].groupName,
+          evidenceDocs: [],
+          rawResponse: '',
+          status: 'forfeit',
+          error: result.reason?.message || 'Unexpected execution error',
+        });
+      }
+    }
+  }
 
   return results;
 }

@@ -7,6 +7,7 @@ import type { Discussion, DiscussionRound, DiscussionVerdict, ModeratorReport, E
 import type { ModeratorConfig, SupporterConfig, DiscussionSettings, SupporterPoolConfig, AgentConfig } from '../types/config.js';
 import { executeBackend } from '../l1/backend.js';
 import { writeDiscussionRound, writeDiscussionVerdict, writeSupportersLog } from './writer.js';
+import { checkForObjections, handleObjections } from './objection.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 
@@ -60,17 +61,22 @@ export function selectSupporters(
 }
 
 /**
- * Random pick N elements from array without duplicates
+ * Random pick N elements from array without duplicates (Fisher-Yates)
  */
 function randomPick<T>(array: T[], count: number): T[] {
-  const shuffled = [...array].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, count);
 }
 
 /**
  * Random pick one element from array
  */
-function randomElement<T>(array: T[]): T {
+function randomElement<T>(array: T[]): T | undefined {
+  if (array.length === 0) return undefined;
   return array[Math.floor(Math.random() * array.length)];
 }
 
@@ -178,6 +184,10 @@ async function runDiscussion(
   // Log supporter combination
   await writeSupportersLog(date, sessionId, discussion.id, selectedSupporters);
 
+  // Track objection rounds to prevent infinite loops
+  let objectionRoundsUsed = 0;
+  const maxObjectionRounds = 1;
+
   // Run up to maxRounds
   for (let roundNum = 1; roundNum <= settings.maxRounds; roundNum++) {
     const round = await runRound(
@@ -195,6 +205,37 @@ async function runDiscussion(
     // Check for consensus
     const consensus = checkConsensus(round, discussion);
     if (consensus.reached) {
+      // Only run objection protocol on agree-consensus (not dismiss)
+      if (consensus.severity !== 'DISMISSED' && objectionRoundsUsed < maxObjectionRounds) {
+        const consensusDeclaration = `Consensus: ${consensus.severity} - ${consensus.reasoning}`;
+        const objectionResult = await checkForObjections(
+          consensusDeclaration,
+          selectedSupporters,
+          rounds
+        );
+        const objectionHandling = handleObjections(objectionResult);
+
+        if (objectionHandling.shouldExtend) {
+          objectionRoundsUsed++;
+
+          // Write synthetic objection round for logging
+          const objectionRound: DiscussionRound = {
+            round: roundNum * 10 + 1, // synthetic objection round (e.g., round 2 → 21)
+            moderatorPrompt: `Objection check after consensus declaration: "${consensusDeclaration}"`,
+            supporterResponses: objectionResult.objections.map((o) => ({
+              supporterId: o.supporterId,
+              response: o.reasoning,
+              stance: 'disagree' as const,
+            })),
+          };
+          await writeDiscussionRound(date, sessionId, discussion.id, objectionRound);
+
+          console.log(`[Moderator] Objections raised, extending discussion: ${objectionHandling.extensionReason}`);
+          // Continue to next round — consensus was premature
+          continue;
+        }
+      }
+
       const verdict: DiscussionVerdict = {
         discussionId: discussion.id,
         finalSeverity: consensus.severity!,
@@ -244,12 +285,16 @@ async function runRound(
   // Moderator prompts the discussion
   const moderatorPrompt = buildModeratorPrompt(discussion, roundNum);
 
-  // Supporters respond in parallel
-  const supporterResponses = await Promise.all(
+  // Supporters respond in parallel with graceful degradation
+  const supporterResults = await Promise.allSettled(
     selectedSupporters.map((supporter) =>
       executeSupporterResponse(supporter, discussion, moderatorPrompt)
     )
   );
+
+  const supporterResponses = supporterResults
+    .filter((r): r is PromiseFulfilledResult<{ supporterId: string; response: string; stance: 'agree' | 'disagree' | 'neutral' }> => r.status === 'fulfilled')
+    .map((r) => r.value);
 
   return {
     round: roundNum,
@@ -299,12 +344,17 @@ async function executeSupporterResponse(
 
 interface ConsensusResult {
   reached: boolean;
-  severity?: 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED';
+  severity?: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED';
   reasoning?: string;
 }
 
 function checkConsensus(round: DiscussionRound, discussion: Discussion): ConsensusResult {
   const supporters = round.supporterResponses;
+
+  // No consensus possible with zero participants
+  if (supporters.length === 0) {
+    return { reached: false };
+  }
 
   // All agree — preserve the discussion's original severity
   const allAgree = supporters.every((s) => s.stance === 'agree');
@@ -337,23 +387,24 @@ async function moderatorForcedDecision(
   discussion: Discussion,
   rounds: DiscussionRound[],
   config: ModeratorConfig
-): Promise<{ severity: 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED'; reasoning: string }> {
+): Promise<{ severity: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED'; reasoning: string }> {
   const prompt = `You are the moderator. The discussion has reached max rounds without consensus.
 
 Issue: ${discussion.issueTitle}
 Severity claimed: ${discussion.severity}
 
 Review all rounds and make a final decision:
-- Severity (CRITICAL, WARNING, SUGGESTION, or DISMISSED)
+- Severity (HARSHLY_CRITICAL, CRITICAL, WARNING, SUGGESTION, or DISMISSED)
 - Reasoning
 
 Rounds:
-${rounds.map((r, i) => `Round ${i + 1}:\n${r.supporterResponses.map(s => `- ${s.supporterId}: ${s.stance}`).join('\n')}`).join('\n\n')}
+${rounds.map((r, i) => `Round ${i + 1}:\n${r.supporterResponses.map(s => `- ${s.supporterId}: ${s.stance} — ${s.response.substring(0, 200)}`).join('\n')}`).join('\n\n')}
 `;
 
   const response = await executeBackend({
     backend: config.backend,
     model: config.model,
+    provider: config.provider,
     prompt,
     timeout: 120,
   });
@@ -393,11 +444,12 @@ function parseStance(response: string): 'agree' | 'disagree' | 'neutral' {
   return 'neutral';
 }
 
-function parseForcedDecision(response: string): { severity: 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED'; reasoning: string } {
+function parseForcedDecision(response: string): { severity: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED'; reasoning: string } {
   const lower = response.toLowerCase();
 
-  let severity: 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED' = 'SUGGESTION';
-  if (lower.includes('critical')) severity = 'CRITICAL';
+  let severity: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED' = 'SUGGESTION';
+  if (lower.includes('harshly_critical') || lower.includes('harshly critical')) severity = 'HARSHLY_CRITICAL';
+  else if (lower.includes('critical')) severity = 'CRITICAL';
   else if (lower.includes('warning')) severity = 'WARNING';
   else if (lower.includes('dismissed')) severity = 'DISMISSED';
 

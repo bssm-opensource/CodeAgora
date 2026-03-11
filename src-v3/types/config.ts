@@ -80,6 +80,7 @@ export type SupporterConfig = AgentConfig;
 export const ModeratorConfigSchema = z.object({
   backend: BackendSchema,
   model: z.string(),
+  provider: z.string().optional(),
 });
 export type ModeratorConfig = z.infer<typeof ModeratorConfigSchema>;
 

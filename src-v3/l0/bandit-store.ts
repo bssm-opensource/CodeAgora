@@ -7,6 +7,7 @@
 import type { BanditArm, ReviewRecord } from '../types/l0.js';
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { z } from 'zod';
 
 // ============================================================================
 // Types
@@ -18,6 +19,32 @@ export interface BanditStoreData {
   arms: Record<string, BanditArm>;
   history: ReviewRecord[];
 }
+
+const BanditArmSchema = z.object({
+  alpha: z.number(),
+  beta: z.number(),
+  reviewCount: z.number(),
+  lastUsed: z.number(),
+});
+
+const BanditStoreDataSchema = z.object({
+  version: z.number(),
+  lastUpdated: z.string(),
+  arms: z.record(z.string(), BanditArmSchema),
+  history: z.array(z.object({
+    reviewId: z.string(),
+    diffId: z.string(),
+    modelId: z.string(),
+    provider: z.string(),
+    timestamp: z.number(),
+    issuesRaised: z.number(),
+    specificityScore: z.number(),
+    peerValidationRate: z.number().nullable(),
+    headAcceptanceRate: z.number().nullable(),
+    compositeQ: z.number().nullable(),
+    rewardSignal: z.union([z.literal(0), z.literal(1), z.null()]),
+  })),
+});
 
 // ============================================================================
 // Store
@@ -42,9 +69,13 @@ export class BanditStore {
   async load(): Promise<void> {
     try {
       const content = await readFile(this.filePath, 'utf-8');
-      this.data = JSON.parse(content);
-    } catch {
-      // File doesn't exist yet — use defaults
+      const parsed = JSON.parse(content);
+      this.data = BanditStoreDataSchema.parse(parsed) as BanditStoreData;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.warn('[BanditStore] Invalid data file, using defaults:', error.message);
+      }
+      // File doesn't exist or invalid — use defaults
     }
   }
 
@@ -96,8 +127,12 @@ export class BanditStore {
     };
   }
 
-  addHistory(record: ReviewRecord): void {
+  addHistory(record: ReviewRecord, maxHistory: number = 1000): void {
     this.data.history.push(record);
+    // Trim oldest entries if over limit
+    if (this.data.history.length > maxHistory) {
+      this.data.history = this.data.history.slice(-maxHistory);
+    }
   }
 
   getHistory(): ReviewRecord[] {

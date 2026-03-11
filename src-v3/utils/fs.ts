@@ -123,19 +123,70 @@ export async function appendMarkdown(
 
 export async function getNextSessionId(date: string): Promise<string> {
   const sessionsDir = path.join(CA_ROOT, 'sessions', date);
+  await ensureDir(sessionsDir);
 
-  try {
-    await ensureDir(sessionsDir);
-    const entries = await fs.readdir(sessionsDir);
-    const sessionNumbers = entries
-      .filter((e) => /^\d{3}$/.test(e))
-      .map((e) => parseInt(e, 10));
+  const lockPath = path.join(sessionsDir, '.lock');
+  const maxAttempts = 10;
 
-    const maxId = sessionNumbers.length > 0 ? Math.max(...sessionNumbers) : 0;
-    return String(maxId + 1).padStart(3, '0');
-  } catch (error) {
-    return '001';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      // Acquire lock using atomic mkdir (fails if already exists)
+      await fs.mkdir(lockPath);
+    } catch {
+      // Check for stale lock (process crashed while holding it)
+      try {
+        const lockStat = await fs.stat(lockPath);
+        if (Date.now() - lockStat.mtimeMs > 60_000) {
+          // Lock is older than 60s — likely stale, force remove and retry
+          await fs.rmdir(lockPath);
+          continue;
+        }
+      } catch {
+        // Lock was just removed by another process — retry
+      }
+      // Lock held by another process, wait and retry
+      await new Promise((r) => setTimeout(r, 50 + Math.random() * 100));
+      continue;
+    }
+
+    try {
+      const entries = await fs.readdir(sessionsDir);
+      const sessionNumbers = entries
+        .filter((e) => /^\d{3}$/.test(e))
+        .map((e) => parseInt(e, 10));
+
+      const maxId = sessionNumbers.length > 0 ? Math.max(...sessionNumbers) : 0;
+      const nextId = String(maxId + 1).padStart(3, '0');
+
+      // Create the session dir while holding the lock to reserve the ID
+      await ensureDir(path.join(sessionsDir, nextId));
+
+      return nextId;
+    } finally {
+      // Release lock
+      try {
+        await fs.rmdir(lockPath);
+      } catch {
+        // Best effort cleanup
+      }
+    }
   }
+
+  // Fallback: use high-entropy ID to avoid collision with sequential IDs
+  const fallback = 900 + Math.floor(Math.random() * 99);
+  const fallbackId = String(fallback).padStart(3, '0');
+
+  // Verify no collision with existing session
+  const entries = await fs.readdir(sessionsDir).catch(() => [] as string[]);
+  if (entries.includes(fallbackId)) {
+    // Last resort: retry with different random in same safe range
+    const lastResortId = String(Date.now() % 99 + 900).padStart(3, '0');
+    await ensureDir(path.join(sessionsDir, lastResortId));
+    return lastResortId;
+  }
+
+  await ensureDir(path.join(sessionsDir, fallbackId));
+  return fallbackId;
 }
 
 // ============================================================================

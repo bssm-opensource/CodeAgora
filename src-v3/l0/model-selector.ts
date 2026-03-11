@@ -41,7 +41,8 @@ function sampleGamma(alpha: number, random: () => number): number {
   const d = alpha - 1 / 3;
   const c = 1 / Math.sqrt(9 * d);
 
-  for (;;) {
+  const MAX_ITERATIONS = 10000;
+  for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let x: number;
     let v: number;
 
@@ -56,6 +57,9 @@ function sampleGamma(alpha: number, random: () => number): number {
     if (u < 1 - 0.0331 * (x * x) * (x * x)) return d * v;
     if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
   }
+
+  // Fallback: return mean of Gamma(alpha, 1)
+  return alpha;
 }
 
 /**

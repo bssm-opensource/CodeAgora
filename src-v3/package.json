@@ -3,16 +3,21 @@
   "version": "3.0.0",
   "type": "module",
   "description": "CodeAgora V3 - 3-layer multi-agent code review",
+  "bin": {
+    "codeagora": "./dist/cli/index.js"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "cli": "tsx cli/index.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^3.0.27",
     "@ai-sdk/openai-compatible": "^2.0.33",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "ai": "^6.0.111",
+    "commander": "^14.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {

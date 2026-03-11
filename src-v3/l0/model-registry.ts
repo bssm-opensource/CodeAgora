@@ -4,6 +4,7 @@
  * a unified model catalog with family and reasoning classification.
  */
 
+import { z } from 'zod';
 import { extractFamily, isReasoningModel } from './family-classifier.js';
 import type { ModelMetadata } from '../types/l0.js';
 
@@ -34,6 +35,29 @@ interface RawGroqData {
     context?: string;
   }>;
 }
+
+const RawRankingsDataSchema = z.object({
+  source: z.string(),
+  models: z.array(z.object({
+    source: z.string(),
+    model_id: z.string(),
+    name: z.string(),
+    swe_bench: z.string().optional(),
+    tier: z.string().optional(),
+    context: z.string().optional(),
+    aa_intelligence: z.number().optional(),
+    aa_speed_tps: z.number().optional(),
+  }).passthrough()),
+});
+
+const RawGroqDataSchema = z.object({
+  source: z.string(),
+  models: z.array(z.object({
+    model_id: z.string(),
+    name: z.string(),
+    context: z.string().optional(),
+  })),
+});
 
 // ============================================================================
 // Registry
@@ -113,8 +137,8 @@ export async function loadRegistry(): Promise<void> {
   ]);
 
   registry = initFromData(
-    JSON.parse(rankingsRaw) as RawRankingsData,
-    JSON.parse(groqRaw) as RawGroqData
+    RawRankingsDataSchema.parse(JSON.parse(rankingsRaw)),
+    RawGroqDataSchema.parse(JSON.parse(groqRaw))
   );
 }
 
