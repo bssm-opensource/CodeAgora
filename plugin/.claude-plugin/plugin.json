@@ -1,0 +1,12 @@
+{
+  "name": "codeagora",
+  "version": "0.1.0",
+  "description": "Multi-agent code review with debate-driven consensus",
+  "author": {
+    "name": "CodeAgora"
+  },
+  "license": "MIT",
+  "keywords": ["code-review", "multi-agent", "debate", "consensus"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
