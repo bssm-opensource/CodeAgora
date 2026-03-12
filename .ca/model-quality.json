@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-12T10:54:03.849Z",
+  "arms": {
+    "gemini/gemini-2.5-flash": {
+      "alpha": 1,
+      "beta": 2,
+      "reviewCount": 1,
+      "lastUsed": 1773312843849
+    },
+    "opencode/gpt-5-nano": {
+      "alpha": 1,
+      "beta": 2,
+      "reviewCount": 1,
+      "lastUsed": 1773312843849
+    }
+  },
+  "history": [
+    {
+      "reviewId": "r1",
+      "diffId": "002",
+      "modelId": "gemini-2.5-flash",
+      "provider": "gemini",
+      "timestamp": 1773312843849,
+      "issuesRaised": 1,
+      "specificityScore": 0.79,
+      "peerValidationRate": 0,
+      "headAcceptanceRate": 0,
+      "compositeQ": 0.158,
+      "rewardSignal": 0
+    },
+    {
+      "reviewId": "r4",
+      "diffId": "002",
+      "modelId": "gpt-5-nano",
+      "provider": "opencode",
+      "timestamp": 1773312843849,
+      "issuesRaised": 4,
+      "specificityScore": 0.87,
+      "peerValidationRate": 0,
+      "headAcceptanceRate": 0,
+      "compositeQ": 0.174,
+      "rewardSignal": 0
+    }
+  ]
+}
