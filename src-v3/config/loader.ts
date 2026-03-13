@@ -1,29 +1,89 @@
 /**
  * Config Loader
- * Load and validate .ca/config.json
+ * Load and validate .ca/config.json (or .ca/config.yaml / .ca/config.yml)
  */
 
+import fs from 'fs/promises';
+import path from 'path';
+import { parse as parseYaml } from 'yaml';
 import { Config, validateConfig, type AgentConfig, type ReviewerEntry, type DeclarativeReviewers } from '../types/config.js';
-import { readJson, getConfigPath } from '../utils/fs.js';
+import { readJson, getConfigPath, CA_ROOT } from '../utils/fs.js';
 
 // ============================================================================
 // Config Loader
 // ============================================================================
 
-export async function loadConfig(): Promise<Config> {
-  const configPath = getConfigPath();
+/**
+ * Load config from an explicit base directory.
+ * Priority: .ca/config.json > .ca/config.yaml > .ca/config.yml
+ * If both JSON and YAML exist, JSON wins and a warning is emitted.
+ */
+export async function loadConfigFrom(baseDir: string): Promise<Config> {
+  const jsonPath = path.join(baseDir, CA_ROOT, 'config.json');
+  const yamlPath = path.join(baseDir, CA_ROOT, 'config.yaml');
+  const ymlPath  = path.join(baseDir, CA_ROOT, 'config.yml');
 
-  try {
-    const configJson = await readJson(configPath);
-    return validateConfig(configJson);
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      throw new Error(
-        `Config file not found at ${configPath}. Run setup first.`
+  const [jsonExists, yamlExists, ymlExists] = await Promise.all([
+    fileExists(jsonPath),
+    fileExists(yamlPath),
+    fileExists(ymlPath),
+  ]);
+
+  const yamlFilePath = yamlExists ? yamlPath : ymlExists ? ymlPath : null;
+
+  if (jsonExists) {
+    if (yamlFilePath) {
+      console.warn(
+        `Both config.json and ${path.basename(yamlFilePath)} found in ${path.join(baseDir, CA_ROOT)}. ` +
+        `config.json takes precedence; config.yaml is ignored.`
       );
     }
-    throw error;
+    const data = await readJson(jsonPath);
+    return validateConfig(data);
   }
+
+  if (yamlFilePath) {
+    return loadYamlConfig(yamlFilePath);
+  }
+
+  // Neither exists — preserve original error message
+  throw new Error(
+    `Config file not found at ${jsonPath}. Run setup first.`
+  );
+}
+
+/**
+ * Load config using process.cwd() as the base directory (default behaviour).
+ */
+export async function loadConfig(): Promise<Config> {
+  return loadConfigFrom(process.cwd());
+}
+
+// ============================================================================
+// Internal helpers
+// ============================================================================
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function loadYamlConfig(filePath: string): Promise<Config> {
+  const content = await fs.readFile(filePath, 'utf-8');
+
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(content);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`YAML parse error in ${filePath}: ${msg}`);
+  }
+
+  return validateConfig(parsed);
 }
 
 /**

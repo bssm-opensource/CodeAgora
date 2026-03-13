@@ -30,6 +30,13 @@ vi.mock('@openrouter/ai-sdk-provider', () => ({
   }),
 }));
 
+vi.mock('@ai-sdk/google', () => ({
+  createGoogleGenerativeAI: vi.fn(() => {
+    const provider = (modelId: string) => ({ modelId, provider: 'google' });
+    return provider;
+  }),
+}));
+
 const mockCreateGroq = vi.mocked(createGroq);
 
 describe('Provider Registry', () => {
@@ -49,7 +56,12 @@ describe('Provider Registry', () => {
       expect(providers).toContain('groq');
       expect(providers).toContain('nvidia-nim');
       expect(providers).toContain('openrouter');
-      expect(providers.length).toBe(3);
+      expect(providers).toContain('google');
+      expect(providers).toContain('mistral');
+      expect(providers).toContain('cerebras');
+      expect(providers).toContain('together');
+      expect(providers).toContain('xai');
+      expect(providers.length).toBeGreaterThanOrEqual(8);
     });
   });
 
@@ -103,6 +115,76 @@ describe('Provider Registry', () => {
       getModel('groq', 'model-b');
 
       expect(mockCreateGroq).toHaveBeenCalledTimes(2);
+    });
+
+    // --- Google (#1) ---
+    it('should create a google model when API key is set', () => {
+      vi.stubEnv('GOOGLE_API_KEY', 'test-key');
+      const model = getModel('google', 'gemini-2.5-flash');
+      expect(model).toBeDefined();
+      expect((model as any).modelId).toBe('gemini-2.5-flash');
+    });
+
+    it('should throw when GOOGLE_API_KEY is missing', () => {
+      delete process.env.GOOGLE_API_KEY;
+      expect(() => getModel('google', 'gemini-2.5-pro'))
+        .toThrow(/Set GOOGLE_API_KEY environment variable/);
+    });
+
+    // --- Mistral (#2) ---
+    it('should create a mistral model when API key is set', () => {
+      vi.stubEnv('MISTRAL_API_KEY', 'test-key');
+      const model = getModel('mistral', 'mistral-large-latest');
+      expect(model).toBeDefined();
+      expect((model as any).modelId).toBe('mistral-large-latest');
+    });
+
+    it('should throw when MISTRAL_API_KEY is missing', () => {
+      delete process.env.MISTRAL_API_KEY;
+      expect(() => getModel('mistral', 'model'))
+        .toThrow(/Set MISTRAL_API_KEY environment variable/);
+    });
+
+    // --- Cerebras (#2) ---
+    it('should create a cerebras model when API key is set', () => {
+      vi.stubEnv('CEREBRAS_API_KEY', 'test-key');
+      const model = getModel('cerebras', 'llama-3.3-70b');
+      expect(model).toBeDefined();
+      expect((model as any).modelId).toBe('llama-3.3-70b');
+    });
+
+    it('should throw when CEREBRAS_API_KEY is missing', () => {
+      delete process.env.CEREBRAS_API_KEY;
+      expect(() => getModel('cerebras', 'model'))
+        .toThrow(/Set CEREBRAS_API_KEY environment variable/);
+    });
+
+    // --- Together (#2) ---
+    it('should create a together model when API key is set', () => {
+      vi.stubEnv('TOGETHER_API_KEY', 'test-key');
+      const model = getModel('together', 'meta-llama/Llama-3-70b');
+      expect(model).toBeDefined();
+      expect((model as any).modelId).toBe('meta-llama/Llama-3-70b');
+    });
+
+    it('should throw when TOGETHER_API_KEY is missing', () => {
+      delete process.env.TOGETHER_API_KEY;
+      expect(() => getModel('together', 'model'))
+        .toThrow(/Set TOGETHER_API_KEY environment variable/);
+    });
+
+    // --- xAI (#2) ---
+    it('should create a xai model when API key is set', () => {
+      vi.stubEnv('XAI_API_KEY', 'test-key');
+      const model = getModel('xai', 'grok-3');
+      expect(model).toBeDefined();
+      expect((model as any).modelId).toBe('grok-3');
+    });
+
+    it('should throw when XAI_API_KEY is missing', () => {
+      delete process.env.XAI_API_KEY;
+      expect(() => getModel('xai', 'model'))
+        .toThrow(/Set XAI_API_KEY environment variable/);
     });
   });
 });

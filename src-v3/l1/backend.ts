@@ -22,6 +22,7 @@ export interface BackendInput {
   provider?: string;
   prompt: string;
   timeout: number;
+  signal?: AbortSignal;
 }
 
 /**

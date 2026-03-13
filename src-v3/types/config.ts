@@ -27,6 +27,13 @@ export const AgentConfigSchema = z
     persona: z.string().optional(),
     timeout: z.number().default(120),
     enabled: z.boolean().default(true),
+    fallback: z
+      .object({
+        model: z.string(),
+        backend: BackendSchema,
+        provider: z.string().optional(),
+      })
+      .optional(),
   })
   .refine(
     (data) => data.backend !== 'opencode' || data.provider !== undefined,

@@ -40,6 +40,9 @@ export async function executeReviewer(
   const diffFilePaths = extractFileListFromDiff(diffContent);
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.timeout * 1000);
+
     try {
       const response = await executeBackend({
         backend: config.backend,
@@ -47,6 +50,7 @@ export async function executeReviewer(
         provider: config.provider,
         prompt: buildReviewerPrompt(diffContent, prSummary),
         timeout: config.timeout,
+        signal: controller.signal,
       });
 
       // Parse response into evidence documents with diff file paths for fallback
@@ -67,10 +71,37 @@ export async function executeReviewer(
         // Wait before retry (exponential backoff)
         await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
-  // All retries failed
+  // All retries failed — try fallback if configured
+  if (lastError && config.fallback) {
+    try {
+      const response = await executeBackend({
+        backend: config.fallback.backend,
+        model: config.fallback.model,
+        provider: config.fallback.provider,
+        prompt: buildReviewerPrompt(diffContent, prSummary),
+        timeout: config.timeout,
+      });
+
+      const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
+
+      return {
+        reviewerId: config.id,
+        model: config.fallback.model,
+        group: groupName,
+        evidenceDocs,
+        rawResponse: response,
+        status: 'success',
+      };
+    } catch {
+      // fallback also failed — forfeit
+    }
+  }
+
   return {
     reviewerId: config.id,
     model: config.model,

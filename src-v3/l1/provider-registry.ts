@@ -6,6 +6,7 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 
 // ============================================================================
@@ -42,6 +43,47 @@ const PROVIDER_FACTORIES = {
     create: (apiKey: string) =>
       createOpenRouter({ apiKey }) as unknown as ProviderInstance,
     apiKeyEnvVar: 'OPENROUTER_API_KEY',
+  },
+  google: {
+    create: (apiKey: string) =>
+      createGoogleGenerativeAI({ apiKey }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'GOOGLE_API_KEY',
+  },
+  mistral: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'mistral',
+        baseURL: 'https://api.mistral.ai/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'MISTRAL_API_KEY',
+  },
+  cerebras: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'cerebras',
+        baseURL: 'https://api.cerebras.ai/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'CEREBRAS_API_KEY',
+  },
+  together: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'together',
+        baseURL: 'https://api.together.xyz/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'TOGETHER_API_KEY',
+  },
+  xai: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'xai',
+        baseURL: 'https://api.x.ai/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'XAI_API_KEY',
   },
 } as const;
 

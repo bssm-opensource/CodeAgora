@@ -122,19 +122,24 @@ export interface ModeratorInput {
 export async function runModerator(input: ModeratorInput): Promise<ModeratorReport> {
   const { config, supporterPoolConfig, discussions, settings, date, sessionId } = input;
 
-  const verdicts: DiscussionVerdict[] = [];
+  const results = await Promise.allSettled(
+    discussions.map((d) => runDiscussion(d, config, supporterPoolConfig, settings, date, sessionId))
+  );
 
-  for (const discussion of discussions) {
-    const verdict = await runDiscussion(
-      discussion,
-      config,
-      supporterPoolConfig,
-      settings,
-      date,
-      sessionId
-    );
-    verdicts.push(verdict);
-  }
+  const verdicts: DiscussionVerdict[] = results.map((result, i) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    }
+    // Rejected: produce an error verdict so the pipeline continues
+    const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
+    return {
+      discussionId: discussions[i].id,
+      finalSeverity: 'DISMISSED' as const,
+      reasoning: `Discussion failed: ${errorMessage}`,
+      consensusReached: false,
+      rounds: 0,
+    };
+  });
 
   return {
     discussions: verdicts,

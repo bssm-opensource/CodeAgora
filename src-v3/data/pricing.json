@@ -1,0 +1,12 @@
+{
+  "groq/llama-3.3-70b-versatile": { "input": 0.00059, "output": 0.00079 },
+  "groq/llama-3.1-8b-instant": { "input": 0.00005, "output": 0.00008 },
+  "groq/deepseek-r1-distill-llama-70b": { "input": 0.00075, "output": 0.00099 },
+  "openrouter/anthropic/claude-3.5-sonnet": { "input": 0.003, "output": 0.015 },
+  "openrouter/google/gemini-2.5-flash": { "input": 0.00015, "output": 0.0006 },
+  "google/gemini-2.5-flash": { "input": 0.00015, "output": 0.0006 },
+  "google/gemini-2.5-pro": { "input": 0.00125, "output": 0.01 },
+  "mistral/mistral-large-latest": { "input": 0.002, "output": 0.006 },
+  "nvidia-nim/deepseek-r1": { "input": 0.0, "output": 0.0 },
+  "cerebras/llama-3.3-70b": { "input": 0.0, "output": 0.0 }
+}
