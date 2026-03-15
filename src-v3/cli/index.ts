@@ -9,15 +9,16 @@ import { runPipeline } from '../pipeline/orchestrator.js';
 import { loadConfig } from '../config/loader.js';
 import path from 'path';
 import fs from 'fs/promises';
-import { runInit } from './commands/init.js';
+import { runInit, runInitInteractive } from './commands/init.js';
 import { runDoctor, formatDoctorReport } from './commands/doctor.js';
 import { listProviders, formatProviderList } from './commands/providers.js';
 import {
-  listSessions, showSession, diffSessions,
-  formatSessionList, formatSessionDetail, formatSessionDiff,
+  listSessions, showSession, diffSessions, getSessionStats,
+  formatSessionList, formatSessionDetail, formatSessionDiff, formatSessionStats,
 } from './commands/sessions.js';
 import { formatOutput, type OutputFormat } from './formatters/review-output.js';
 import { parseReviewerOption, readStdin } from './options/review-options.js';
+import { formatError, classifyError } from './utils/errors.js';
 import ora from 'ora';
 import { ProgressEmitter } from '../pipeline/progress.js';
 
@@ -182,12 +183,18 @@ program
         try { await fs.unlink(stdinTmpPath); } catch { /* ignore */ }
       }
 
+      if (result.summary?.decision === 'REJECT') {
+        process.exit(1);
+      }
+
       if (result.status !== 'success') {
         process.exit(1);
       }
-    } catch (error) {
-      console.error('Fatal error:', error instanceof Error ? error.message : error);
-      process.exit(1);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error(formatError(error, options.verbose));
+      const { exitCode } = classifyError(error);
+      process.exit(exitCode);
     }
   });
 
@@ -210,10 +217,17 @@ program
   .description('Initialize CodeAgora in current project')
   .option('--format <format>', 'Config format (json or yaml)', 'json')
   .option('--force', 'Overwrite existing files', false)
-  .action(async (options: { format: string; force: boolean }) => {
+  .option('--yes, -y', 'Skip prompts, use defaults', false)
+  .action(async (options: { format: string; force: boolean; yes: boolean }) => {
     try {
       const format = options.format === 'yaml' ? 'yaml' : 'json';
-      const result = await runInit({ format, force: options.force, baseDir: process.cwd() });
+      const isInteractive = !options.yes && process.stdin.isTTY;
+      let result;
+      if (isInteractive) {
+        result = await runInitInteractive({ format, force: options.force, baseDir: process.cwd() });
+      } else {
+        result = await runInit({ format, force: options.force, baseDir: process.cwd() });
+      }
       for (const f of result.created) {
         console.log(`  created: ${f}`);
       }
@@ -264,10 +278,33 @@ sessionsCmd
   .command('list')
   .description('List recent review sessions')
   .option('--limit <n>', 'Maximum sessions to show', parseInt)
-  .action(async (opts: { limit?: number }) => {
+  .option('--status <status>', 'Filter by status (completed/failed/in_progress)')
+  .option('--after <date>', 'Sessions after date (YYYY-MM-DD)')
+  .option('--before <date>', 'Sessions before date (YYYY-MM-DD)')
+  .option('--sort <field>', 'Sort by (date/status/issues)', 'date')
+  .action(async (opts: { limit?: number; status?: string; after?: string; before?: string; sort?: string }) => {
     try {
-      const sessions = await listSessions(process.cwd(), { limit: opts.limit });
+      const sessions = await listSessions(process.cwd(), {
+        limit: opts.limit,
+        status: opts.status,
+        after: opts.after,
+        before: opts.before,
+        sort: opts.sort,
+      });
       console.log(formatSessionList(sessions));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+sessionsCmd
+  .command('stats')
+  .description('Show review statistics')
+  .action(async () => {
+    try {
+      const stats = await getSessionStats(process.cwd());
+      console.log(formatSessionStats(stats));
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);

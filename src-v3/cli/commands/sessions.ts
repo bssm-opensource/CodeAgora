@@ -6,6 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { statusColor, severityColor } from '../utils/colors.js';
+import pc from 'picocolors';
 
 // ============================================================================
 // Types
@@ -31,6 +32,23 @@ export interface SessionDiff {
   added: string[];    // issues only in session2
   removed: string[];  // issues only in session1
   unchanged: number;
+}
+
+export interface ListOptions {
+  limit?: number;
+  status?: string;   // 'completed' | 'failed' | 'in_progress'
+  after?: string;    // 'YYYY-MM-DD'
+  before?: string;   // 'YYYY-MM-DD'
+  sort?: string;     // 'date' (default) | 'status' | 'issues'
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  completed: number;
+  failed: number;
+  inProgress: number;
+  successRate: number;
+  severityDistribution: Record<string, number>;
 }
 
 // ============================================================================
@@ -76,10 +94,11 @@ function extractIssues(verdict: Record<string, unknown>): string[] {
 
 /**
  * List sessions under baseDir/.ca/sessions/, newest first, up to limit (default 10).
+ * Supports filtering by status, date range, and sorting.
  */
 export async function listSessions(
   baseDir: string,
-  options?: { limit?: number }
+  options?: ListOptions
 ): Promise<SessionEntry[]> {
   const limit = options?.limit ?? 10;
   const sessionsDir = path.join(baseDir, '.ca', 'sessions');
@@ -135,14 +154,142 @@ export async function listSessions(
         status,
         dirPath: sessionPath,
       });
+    }
+  }
 
-      if (results.length >= limit) {
-        return results;
+  // Apply filters
+  let filtered = results;
+  if (options?.status) {
+    filtered = filtered.filter((e) => e.status === options.status);
+  }
+  if (options?.after) {
+    filtered = filtered.filter((e) => e.date >= options.after!);
+  }
+  if (options?.before) {
+    filtered = filtered.filter((e) => e.date <= options.before!);
+  }
+
+  // Apply sort
+  const sort = options?.sort ?? 'date';
+  if (sort === 'status') {
+    filtered = filtered.slice().sort((a, b) => a.status.localeCompare(b.status));
+  } else if (sort === 'issues') {
+    // Read verdict files to count issues, then sort descending
+    const withCounts = await Promise.all(
+      filtered.map(async (entry) => {
+        const verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
+        let count = 0;
+        if (verdict) {
+          for (const key of ['issues', 'findings', 'items']) {
+            const val = verdict[key];
+            if (Array.isArray(val)) {
+              count = val.length;
+              break;
+            }
+          }
+        }
+        return { entry, count };
+      })
+    );
+    withCounts.sort((a, b) => b.count - a.count);
+    filtered = withCounts.map((x) => x.entry);
+  }
+  // 'date' is already sorted newest first from collection order
+
+  return filtered.slice(0, limit);
+}
+
+/**
+ * Return aggregate statistics across all sessions under baseDir/.ca/sessions/.
+ */
+export async function getSessionStats(baseDir: string): Promise<SessionStats> {
+  const sessionsDir = path.join(baseDir, '.ca', 'sessions');
+
+  let dateDirs: string[];
+  try {
+    const entries = await fs.readdir(sessionsDir);
+    dateDirs = entries.sort();
+  } catch {
+    return {
+      totalSessions: 0,
+      completed: 0,
+      failed: 0,
+      inProgress: 0,
+      successRate: 0,
+      severityDistribution: {},
+    };
+  }
+
+  let totalSessions = 0;
+  let completed = 0;
+  let failed = 0;
+  let inProgress = 0;
+  const severityDistribution: Record<string, number> = {};
+
+  for (const dateDir of dateDirs) {
+    const datePath = path.join(sessionsDir, dateDir);
+    let stat: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      stat = await fs.stat(datePath);
+    } catch {
+      continue;
+    }
+    if (!stat.isDirectory()) continue;
+
+    let sessionIds: string[];
+    try {
+      sessionIds = await fs.readdir(datePath);
+    } catch {
+      continue;
+    }
+
+    for (const sessionId of sessionIds) {
+      const sessionPath = path.join(datePath, sessionId);
+      let sStat: Awaited<ReturnType<typeof fs.stat>>;
+      try {
+        sStat = await fs.stat(sessionPath);
+      } catch {
+        continue;
+      }
+      if (!sStat.isDirectory()) continue;
+
+      totalSessions++;
+
+      const metadata = await readJsonFile(path.join(sessionPath, 'metadata.json'));
+      const status = metadata && typeof metadata['status'] === 'string'
+        ? metadata['status']
+        : 'unknown';
+
+      if (status === 'completed') completed++;
+      else if (status === 'failed') failed++;
+      else if (status === 'in_progress') inProgress++;
+
+      const verdict = await readJsonFile(path.join(sessionPath, 'head-verdict.json'));
+      if (verdict) {
+        for (const key of ['issues', 'findings', 'items']) {
+          const val = verdict[key];
+          if (Array.isArray(val)) {
+            for (const item of val) {
+              if (typeof item === 'object' && item !== null) {
+                const obj = item as Record<string, unknown>;
+                const severity = typeof obj['severity'] === 'string'
+                  ? obj['severity']
+                  : 'unknown';
+                severityDistribution[severity] = (severityDistribution[severity] ?? 0) + 1;
+              }
+            }
+            break;
+          }
+        }
       }
     }
   }
 
-  return results;
+  const successRate = totalSessions > 0
+    ? Math.round((completed / totalSessions) * 1000) / 10
+    : 0;
+
+  return { totalSessions, completed, failed, inProgress, successRate, severityDistribution };
 }
 
 /**
@@ -321,6 +468,44 @@ export function formatSessionDiff(diff: SessionDiff): string {
     lines.push('Resolved issues:');
     for (const issue of diff.removed) {
       lines.push(`  - ${issue}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+export function formatSessionStats(stats: SessionStats): string {
+  const lines: string[] = [];
+  const divider1 = '\u2500'.repeat(17);
+  const divider2 = '\u2500'.repeat(21);
+
+  lines.push(pc.bold('Review Statistics'));
+  lines.push(divider1);
+
+  const pct = (n: number) =>
+    stats.totalSessions > 0
+      ? ` (${((n / stats.totalSessions) * 100).toFixed(1)}%)`
+      : '';
+
+  lines.push(`Total sessions:  ${stats.totalSessions}`);
+  lines.push(`Completed:       ${statusColor.pass(String(stats.completed))}${pct(stats.completed)}`);
+  lines.push(`Failed:          ${statusColor.fail(String(stats.failed))}${pct(stats.failed)}`);
+  lines.push(`In Progress:     ${statusColor.warn(String(stats.inProgress))}${pct(stats.inProgress)}`);
+
+  lines.push('');
+  lines.push(pc.bold('Severity Distribution'));
+  lines.push(divider2);
+
+  const severityKeys = Object.keys(stats.severityDistribution);
+  if (severityKeys.length === 0) {
+    lines.push('No issues recorded.');
+  } else {
+    for (const sev of severityKeys) {
+      const count = stats.severityDistribution[sev];
+      const label = sev in severityColor
+        ? severityColor[sev as keyof typeof severityColor](sev)
+        : sev;
+      lines.push(`${label}:`.padEnd(20) + `  ${count}`);
     }
   }
 

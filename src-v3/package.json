@@ -17,6 +17,7 @@
     "@ai-sdk/google": "^3.0.43",
     "@ai-sdk/groq": "^3.0.27",
     "@ai-sdk/openai-compatible": "^2.0.33",
+    "@clack/prompts": "^1.1.0",
     "@octokit/rest": "^22.0.1",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "ai": "^6.0.111",
