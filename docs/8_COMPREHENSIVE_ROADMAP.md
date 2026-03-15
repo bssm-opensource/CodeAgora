@@ -275,7 +275,7 @@ Sprint 5 (고급 기능, ~3일):
 
 | # | 결정 | 선택지 | 권장 |
 |---|------|--------|------|
-| D1 | **CLI 위치** | root `src/cli/` vs `src-v3/cli/` | `src-v3/cli/` (v3 모듈과 같은 빌드 파이프라인) |
+| D1 | **CLI 위치** | root `src/cli/` vs `src/cli/` | `src/cli/` (v3 모듈과 같은 빌드 파이프라인) |
 | D2 | **독립 실행 vs Claude Code 의존** | V3 설계문서 "Claude Code only" vs 실제 구현 | 독립 실행 (L3은 이미 규칙 기반) |
 | D3 | **JSON vs SQLite** (데이터 저장) | JSON 파일 vs SQLite (native dep) | JSON (v1 호환, zero dep, SQLite는 추후) |
 | D4 | **diffId 정의** | sessionId vs SHA-256(diff content) | SHA-256 (캐싱, 중복 제거 전제조건) |

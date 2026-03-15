@@ -764,7 +764,7 @@ A human reviewer has been requested.
 ### 6.1 File Structure
 
 ```
-src-v3/
+src/
 └── github/
     ├── mapper.ts          ← EvidenceDocument/HeadVerdict → GitHub API shapes
     ├── diff-parser.ts     ← unified diff → hunk position index

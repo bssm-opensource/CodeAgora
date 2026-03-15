@@ -128,7 +128,7 @@ pnpm test -- --coverage
 ### Project Structure
 
 ```
-src-v3/
+src/
 ├── types/          # Type definitions
 │   ├── core.ts
 │   └── config.ts

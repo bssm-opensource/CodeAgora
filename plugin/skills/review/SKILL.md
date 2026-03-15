@@ -37,7 +37,7 @@ git diff --staged > /tmp/codeagora-review-$(date +%s).diff
 
 core CLI를 실행:
 ```bash
-node {PROJECT_ROOT}/src-v3/dist/cli/index.js review <diff-path>
+node {PROJECT_ROOT}/src/dist/cli/index.js review <diff-path>
 ```
 
 이 명령은 다음 파이프라인을 실행합니다:

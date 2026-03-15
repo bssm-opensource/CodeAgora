@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-// Core path resolution — plugin sits at ./plugin/, core at ./src-v3/
+// Core path resolution — plugin sits at ./plugin/, core at ./src/
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
-const CORE_DIST = join(PROJECT_ROOT, 'src-v3', 'dist');
+const CORE_DIST = join(PROJECT_ROOT, 'src', 'dist');
 const SESSIONS_DIR = join(PROJECT_ROOT, '.ca', 'sessions');
 const CONFIG_PATH = join(PROJECT_ROOT, '.ca', 'config.json');
 

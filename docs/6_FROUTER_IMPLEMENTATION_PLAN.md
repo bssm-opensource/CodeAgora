@@ -133,17 +133,17 @@ main
 
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
-| `src-v3/types/config.ts` | **수정** | `Backend` enum에 `'api'` 추가 |
-| `src-v3/l1/backend.ts` | **수정** | `executeBackend()`에 API 분기 추가 |
-| `src-v3/l1/api-backend.ts` | **신규** | Vercel AI SDK 기반 API 실행기 |
-| `src-v3/l1/provider-registry.ts` | **신규** | AI SDK provider 매핑 + 초기화 |
-| `src-v3/tests/l1-api-backend.test.ts` | **신규** | API 백엔드 유닛 테스트 |
-| `src-v3/tests/l1-provider-registry.test.ts` | **신규** | Provider 레지스트리 테스트 |
+| `src/types/config.ts` | **수정** | `Backend` enum에 `'api'` 추가 |
+| `src/l1/backend.ts` | **수정** | `executeBackend()`에 API 분기 추가 |
+| `src/l1/api-backend.ts` | **신규** | Vercel AI SDK 기반 API 실행기 |
+| `src/l1/provider-registry.ts` | **신규** | AI SDK provider 매핑 + 초기화 |
+| `src/tests/l1-api-backend.test.ts` | **신규** | API 백엔드 유닛 테스트 |
+| `src/tests/l1-provider-registry.test.ts` | **신규** | Provider 레지스트리 테스트 |
 | `package.json` | **수정** | AI SDK 의존성 추가 |
 
 ### 4.2 상세 구현
 
-#### 4.2.1 `src-v3/types/config.ts` 수정
+#### 4.2.1 `src/types/config.ts` 수정
 
 ```typescript
 // 변경 전
@@ -213,7 +213,7 @@ reviewers: z.array(ReviewerEntrySchema).min(1)
 
 > **설계 결정**: `auto: true` 리뷰어는 `model`, `backend`, `provider`가 없다. L0 `resolveReviewers()`가 런타임에 이 필드들을 채워 `AgentConfig`로 변환한 후 L1에 전달한다. 따라서 L1 이하 코드는 항상 완전한 `AgentConfig`만 받으므로 수정 불필요.
 
-#### 4.2.2 `src-v3/l1/provider-registry.ts` (신규)
+#### 4.2.2 `src/l1/provider-registry.ts` (신규)
 
 ```typescript
 /**
@@ -292,7 +292,7 @@ export function clearProviderCache(): void {
 }
 ```
 
-#### 4.2.3 `src-v3/l1/api-backend.ts` (신규)
+#### 4.2.3 `src/l1/api-backend.ts` (신규)
 
 ```typescript
 /**
@@ -324,7 +324,7 @@ export async function executeViaAISDK(input: BackendInput): Promise<string> {
 }
 ```
 
-#### 4.2.4 `src-v3/l1/backend.ts` 수정
+#### 4.2.4 `src/l1/backend.ts` 수정
 
 ```typescript
 // executeBackend 함수 수정
@@ -395,31 +395,31 @@ export async function executeBackend(input: BackendInput): Promise<string> {
 
 | 파일 | 설명 |
 |------|------|
-| `src-v3/l0/model-registry.ts` | 모델 메타데이터 관리 (frouter 데이터 기반) |
-| `src-v3/l0/health-monitor.ts` | Circuit breaker + 핑 프로토콜 |
-| `src-v3/l0/family-classifier.ts` | 모델 ID → 패밀리 추출 |
-| `src-v3/l0/model-selector.ts` | Thompson Sampling + diversity constraint |
-| `src-v3/l0/index.ts` | L0 public API |
-| `src-v3/data/model-rankings.json` | frouter에서 복사한 168개 모델 메타데이터 |
-| `src-v3/data/groq-models.json` | Groq 무료 모델 목록 (frouter에 없음) |
-| `src-v3/types/l0.ts` | L0 전용 타입 정의 |
-| `src-v3/tests/l0-model-registry.test.ts` | 모델 레지스트리 테스트 |
-| `src-v3/tests/l0-health-monitor.test.ts` | 서킷 브레이커 테스트 |
-| `src-v3/tests/l0-family-classifier.test.ts` | 패밀리 분류 테스트 |
-| `src-v3/tests/l0-model-selector.test.ts` | 모델 선택 테스트 |
+| `src/l0/model-registry.ts` | 모델 메타데이터 관리 (frouter 데이터 기반) |
+| `src/l0/health-monitor.ts` | Circuit breaker + 핑 프로토콜 |
+| `src/l0/family-classifier.ts` | 모델 ID → 패밀리 추출 |
+| `src/l0/model-selector.ts` | Thompson Sampling + diversity constraint |
+| `src/l0/index.ts` | L0 public API |
+| `src/data/model-rankings.json` | frouter에서 복사한 168개 모델 메타데이터 |
+| `src/data/groq-models.json` | Groq 무료 모델 목록 (frouter에 없음) |
+| `src/types/l0.ts` | L0 전용 타입 정의 |
+| `src/tests/l0-model-registry.test.ts` | 모델 레지스트리 테스트 |
+| `src/tests/l0-health-monitor.test.ts` | 서킷 브레이커 테스트 |
+| `src/tests/l0-family-classifier.test.ts` | 패밀리 분류 테스트 |
+| `src/tests/l0-model-selector.test.ts` | 모델 선택 테스트 |
 
 ### 5.2 수정 파일 목록
 
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
-| `src-v3/types/config.ts` | **수정** | `modelRouter` 설정 스키마 추가 |
-| `src-v3/pipeline/orchestrator.ts` | **수정** | L0 모델 선택 단계 삽입 |
-| `src-v3/l1/reviewer.ts` | **수정** | `auto` 리뷰어 처리 로직 |
-| `src-v3/config/loader.ts` | **수정** | `modelRouter` 설정 로딩 |
+| `src/types/config.ts` | **수정** | `modelRouter` 설정 스키마 추가 |
+| `src/pipeline/orchestrator.ts` | **수정** | L0 모델 선택 단계 삽입 |
+| `src/l1/reviewer.ts` | **수정** | `auto` 리뷰어 처리 로직 |
+| `src/config/loader.ts` | **수정** | `modelRouter` 설정 로딩 |
 
 ### 5.3 상세 구현
 
-#### 5.3.1 `src-v3/types/l0.ts` (신규)
+#### 5.3.1 `src/types/l0.ts` (신규)
 
 ```typescript
 /**
@@ -509,7 +509,7 @@ export const ModelRouterConfigSchema = z.object({
 export type ModelRouterConfig = z.infer<typeof ModelRouterConfigSchema>;
 ```
 
-#### 5.3.2 `src-v3/l0/model-registry.ts` (신규)
+#### 5.3.2 `src/l0/model-registry.ts` (신규)
 
 **책임**: frouter의 `model-rankings.json` + Groq 모델 데이터를 로드하고, 통합 모델 카탈로그를 제공.
 
@@ -530,7 +530,7 @@ export type ModelRouterConfig = z.infer<typeof ModelRouterConfigSchema>;
 - refresh(): Promise<void>  // 데이터 리로드
 ```
 
-#### 5.3.3 `src-v3/l0/health-monitor.ts` (신규)
+#### 5.3.3 `src/l0/health-monitor.ts` (신규)
 
 **책임**: 모델 endpoint 헬스체크 + circuit breaker 상태 관리.
 
@@ -577,7 +577,7 @@ export type ModelRouterConfig = z.infer<typeof ModelRouterConfigSchema>;
 - isWithinBudget(provider: string): boolean
 ```
 
-#### 5.3.4 `src-v3/l0/family-classifier.ts` (신규)
+#### 5.3.4 `src/l0/family-classifier.ts` (신규)
 
 **책임**: 모델 ID에서 패밀리를 추출하고, reasoning 여부를 판정.
 
@@ -610,7 +610,7 @@ kimi → "moonshot"
 - reasoning은 원래 모델 기준: → isReasoning: true (R1 증류이므로)
 ```
 
-#### 5.3.5 `src-v3/l0/model-selector.ts` (신규)
+#### 5.3.5 `src/l0/model-selector.ts` (신규)
 
 **책임**: Thompson Sampling + diversity constraint로 최적 모델 조합 선택.
 
@@ -654,7 +654,7 @@ interface BanditArm {
 }
 ```
 
-#### 5.3.6 `src-v3/l1/reviewer.ts` 수정
+#### 5.3.6 `src/l1/reviewer.ts` 수정
 
 `auto` 리뷰어가 L0에서 해소된 후 L1에 도달하므로, `ReviewerInput` 자체는 변경 불필요. 변경은 orchestrator의 `resolveReviewers()`에서 처리.
 
@@ -686,7 +686,7 @@ logger.error(
 
 > **핵심**: L0 → orchestrator → L1 경계에서 `AutoReviewerConfig`는 이미 `AgentConfig`로 변환된 상태. L1은 auto/static 구분 없이 동일하게 처리. `selectionMeta`는 순수 로깅/디버깅 목적.
 
-#### 5.3.7 `src-v3/pipeline/orchestrator.ts` 수정
+#### 5.3.7 `src/pipeline/orchestrator.ts` 수정
 
 L0 모델 선택을 `executeReviewers()` 전에 삽입:
 
@@ -754,7 +754,7 @@ const enabledReviewers = resolvedReviewers.filter(r => r.config.enabled);
 
 ```
 [frouter에서 가져오는 것]
-1. model-rankings.json → src-v3/data/model-rankings.json (직접 복사)
+1. model-rankings.json → src/data/model-rankings.json (직접 복사)
 2. Tier 시스템 (S+~C)
 3. 모델 메타데이터 (context, AA Intelligence, AA Speed TPS)
 
@@ -788,26 +788,26 @@ const enabledReviewers = resolvedReviewers.filter(r => r.config.enabled);
 
 | 파일 | 설명 |
 |------|------|
-| `src-v3/l0/quality-tracker.ts` | 리뷰 품질 측정 + 복합 Q 점수 계산 |
-| `src-v3/l0/specificity-scorer.ts` | 즉시 계산 가능한 구체성 점수 |
-| `src-v3/l0/bandit-store.ts` | Bandit 상태 영속 저장 |
-| `src-v3/data/model-quality.json` | 모델별 품질 이력 (런타임 생성) |
-| `src-v3/tests/l0-quality-tracker.test.ts` | 품질 추적 테스트 |
-| `src-v3/tests/l0-specificity-scorer.test.ts` | 구체성 점수 테스트 |
-| `src-v3/tests/l0-bandit-store.test.ts` | Bandit 저장소 테스트 |
+| `src/l0/quality-tracker.ts` | 리뷰 품질 측정 + 복합 Q 점수 계산 |
+| `src/l0/specificity-scorer.ts` | 즉시 계산 가능한 구체성 점수 |
+| `src/l0/bandit-store.ts` | Bandit 상태 영속 저장 |
+| `src/data/model-quality.json` | 모델별 품질 이력 (런타임 생성) |
+| `src/tests/l0-quality-tracker.test.ts` | 품질 추적 테스트 |
+| `src/tests/l0-specificity-scorer.test.ts` | 구체성 점수 테스트 |
+| `src/tests/l0-bandit-store.test.ts` | Bandit 저장소 테스트 |
 
 ### 6.2 수정 파일 목록
 
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
-| `src-v3/l0/model-selector.ts` | **수정** | bandit-store에서 상태 로드/저장 |
-| `src-v3/l2/moderator.ts` | **수정** | 토론 결과 → quality-tracker에 피드백 |
-| `src-v3/l3/verdict.ts` | **수정** | Head verdict → quality-tracker에 피드백 |
-| `src-v3/pipeline/orchestrator.ts` | **수정** | 파이프라인 끝에서 품질 피드백 수집 |
+| `src/l0/model-selector.ts` | **수정** | bandit-store에서 상태 로드/저장 |
+| `src/l2/moderator.ts` | **수정** | 토론 결과 → quality-tracker에 피드백 |
+| `src/l3/verdict.ts` | **수정** | Head verdict → quality-tracker에 피드백 |
+| `src/pipeline/orchestrator.ts` | **수정** | 파이프라인 끝에서 품질 피드백 수집 |
 
 ### 6.3 상세 구현
 
-#### 6.3.1 `src-v3/l0/specificity-scorer.ts` (신규)
+#### 6.3.1 `src/l0/specificity-scorer.ts` (신규)
 
 L1 리뷰어 출력을 즉시 평가 (L2/L3 결과 불필요):
 
@@ -820,7 +820,7 @@ L1 리뷰어 출력을 즉시 평가 (L2/L3 결과 불필요):
 5. hasSeverityRationale: severity 선택 근거가 명시적? (+0.2)
 ```
 
-#### 6.3.2 `src-v3/l0/quality-tracker.ts` (신규)
+#### 6.3.2 `src/l0/quality-tracker.ts` (신규)
 
 3가지 signal을 수집하여 복합 Q 점수 계산:
 
@@ -854,7 +854,7 @@ interface ReviewRecord {
 }
 ```
 
-#### 6.3.3 `src-v3/l0/bandit-store.ts` (신규)
+#### 6.3.3 `src/l0/bandit-store.ts` (신규)
 
 Bandit 상태를 파일 시스템에 영속 저장:
 
@@ -952,10 +952,10 @@ P(model_i beats model_j) = exp(β_i) / (exp(β_i) + exp(β_j))
 
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
-| `src-v3/types/config.ts` | **수정** | `reviewers` 필드가 배열 또는 선언적 객체 허용 |
-| `src-v3/config/loader.ts` | **수정** | 선언적 config → 내부 AgentConfig 배열 변환 |
-| `src-v3/l0/model-selector.ts` | **수정** | 선언적 constraints 직접 수용 |
-| `src-v3/tests/config-declarative.test.ts` | **신규** | 선언적 config 파싱/변환 테스트 |
+| `src/types/config.ts` | **수정** | `reviewers` 필드가 배열 또는 선언적 객체 허용 |
+| `src/config/loader.ts` | **수정** | 선언적 config → 내부 AgentConfig 배열 변환 |
+| `src/l0/model-selector.ts` | **수정** | 선언적 constraints 직접 수용 |
+| `src/tests/config-declarative.test.ts` | **신규** | 선언적 config 파싱/변환 테스트 |
 
 ### 7.2 Config 스키마 (Phase 4)
 

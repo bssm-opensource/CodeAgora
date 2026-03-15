@@ -1,5 +1,5 @@
 /**
- * Tests for pure functions exported from src-v3/config/loader.ts
+ * Tests for pure functions exported from src/config/loader.ts
  */
 
 import { describe, it, expect } from 'vitest';

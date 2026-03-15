@@ -51,7 +51,7 @@ user_invocable: true
 ### Step 3: 검증 (validate 옵션)
 
 `validate` 인자가 있으면 추가로:
-1. core CLI의 config 명령 실행: `node {PROJECT_ROOT}/src-v3/dist/cli/index.js config`
+1. core CLI의 config 명령 실행: `node {PROJECT_ROOT}/src/dist/cli/index.js config`
 2. 검증 결과 표시
 
 ## Error Handling

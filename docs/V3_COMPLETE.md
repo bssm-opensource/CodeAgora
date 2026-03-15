@@ -291,8 +291,8 @@ console.log(result.date);      // '2026-02-16'
 - `docs/3_V3_DESIGN.md` - Architecture design document
 - `docs/V3_IMPLEMENTATION_STATUS.md` - Implementation progress
 - `docs/V3_COMPLETE.md` - This file
-- `src-v3/README.md` - Usage guide
-- `src-v3/CHANGELOG.md` - Version history
+- `src/README.md` - Usage guide
+- `src/CHANGELOG.md` - Version history
 
 ---
 

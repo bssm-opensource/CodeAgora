@@ -1,5 +1,5 @@
 /**
- * Tests for src-v3/config/templates.ts
+ * Tests for src/config/templates.ts
  */
 
 import { describe, it, expect } from 'vitest';

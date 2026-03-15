@@ -20990,7 +20990,7 @@ var StdioServerTransport = class {
 var import_promises = require("node:fs/promises");
 var import_node_path = require("node:path");
 var PROJECT_ROOT = (0, import_node_path.resolve)(__dirname, "..", "..");
-var CORE_DIST = (0, import_node_path.join)(PROJECT_ROOT, "src-v3", "dist");
+var CORE_DIST = (0, import_node_path.join)(PROJECT_ROOT, "src", "dist");
 var SESSIONS_DIR = (0, import_node_path.join)(PROJECT_ROOT, ".ca", "sessions");
 var CONFIG_PATH = (0, import_node_path.join)(PROJECT_ROOT, ".ca", "config.json");
 async function importCore() {

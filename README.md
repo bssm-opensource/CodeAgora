@@ -44,7 +44,7 @@ Get running in under 2 minutes.
 ```bash
 # 1. Clone and install
 git clone <repo-url> codeagora
-cd codeagora/src-v3
+cd codeagora
 pnpm install
 
 # 2. Build
@@ -74,7 +74,7 @@ That's it. `agora init` writes a `.ca/config.json` with sensible defaults using 
 
 ```bash
 git clone <repo-url> codeagora
-cd codeagora/src-v3
+cd codeagora
 pnpm install
 pnpm build
 ```
@@ -418,7 +418,7 @@ Use `agora sessions list` and `agora sessions show` to browse past sessions with
 ### Project Structure
 
 ```
-src-v3/
+src/
 ├── cli/           # CLI commands, formatters, options, error utilities
 ├── tui/           # Interactive terminal UI (ink + React)
 ├── pipeline/      # Pipeline orchestrator, progress emitter
@@ -441,7 +441,7 @@ src-v3/
 ## Development
 
 ```bash
-cd src-v3
+cd src
 
 # Run all tests
 pnpm test

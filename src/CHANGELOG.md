@@ -101,7 +101,7 @@ New config structure:
 
 ### 🚀 Migration from V2
 
-V2 is preserved in `tools/` directory. V3 is in `src-v3/`.
+V2 is preserved in `tools/` directory. V3 is in `src/`.
 
 **Breaking Changes:**
 - Config schema completely redesigned
@@ -113,7 +113,7 @@ V2 is preserved in `tools/` directory. V3 is in `src-v3/`.
 
 - `docs/3_V3_DESIGN.md` - Architecture design
 - `docs/V3_IMPLEMENTATION_STATUS.md` - Implementation status
-- `src-v3/README.md` - Usage guide
+- `src/README.md` - Usage guide
 
 ### 🙏 Acknowledgments
 

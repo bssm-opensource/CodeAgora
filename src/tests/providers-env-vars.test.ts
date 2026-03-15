@@ -1,5 +1,5 @@
 /**
- * Tests for src-v3/providers/env-vars.ts
+ * Tests for src/providers/env-vars.ts
  */
 
 import { describe, it, expect } from 'vitest';
