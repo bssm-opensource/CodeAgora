@@ -3,17 +3,16 @@
  * Supports 'en' (default) and 'ko' locales.
  */
 
-import { createRequire } from 'module';
+import enMessages from './locales/en.json';
+import koMessages from './locales/ko.json';
 
 type Locale = 'en' | 'ko';
 
 let currentLocale: Locale = 'en';
 
-// Use createRequire for reliable JSON loading across all module configs
-const _require = createRequire(import.meta.url);
 const locales: Record<Locale, Record<string, string>> = {
-  en: _require('./locales/en.json') as Record<string, string>,
-  ko: _require('./locales/ko.json') as Record<string, string>,
+  en: enMessages as Record<string, string>,
+  ko: koMessages as Record<string, string>,
 };
 
 export function setLocale(lang: Locale): void {
