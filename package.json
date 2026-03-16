@@ -36,8 +36,10 @@
     "cli": "tsx src/cli/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/google": "^3.0.43",
     "@ai-sdk/groq": "^3.0.27",
+    "@ai-sdk/openai": "^3.0.41",
     "@ai-sdk/openai-compatible": "^2.0.33",
     "@clack/prompts": "^1.1.0",
     "@octokit/rest": "^22.0.1",

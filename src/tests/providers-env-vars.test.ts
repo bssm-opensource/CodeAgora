@@ -6,8 +6,8 @@ import { describe, it, expect } from 'vitest';
 import { PROVIDER_ENV_VARS, getProviderEnvVar } from '../providers/env-vars.js';
 
 describe('PROVIDER_ENV_VARS', () => {
-  it('should map all 8 known providers', () => {
-    expect(Object.keys(PROVIDER_ENV_VARS)).toHaveLength(8);
+  it('should map all 13 known providers', () => {
+    expect(Object.keys(PROVIDER_ENV_VARS)).toHaveLength(13);
   });
 
   it('should map nvidia-nim to NVIDIA_API_KEY', () => {

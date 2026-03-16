@@ -7,6 +7,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import type { LanguageModel } from 'ai';
 
 // ============================================================================
@@ -84,6 +86,43 @@ const PROVIDER_FACTORIES = {
         apiKey,
       }) as unknown as ProviderInstance,
     apiKeyEnvVar: 'XAI_API_KEY',
+  },
+  openai: {
+    create: (apiKey: string) =>
+      createOpenAI({ apiKey }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'OPENAI_API_KEY',
+  },
+  anthropic: {
+    create: (apiKey: string) =>
+      createAnthropic({ apiKey }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'ANTHROPIC_API_KEY',
+  },
+  deepseek: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'deepseek',
+        baseURL: 'https://api.deepseek.com/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'DEEPSEEK_API_KEY',
+  },
+  qwen: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'qwen',
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'QWEN_API_KEY',
+  },
+  zai: {
+    create: (apiKey: string) =>
+      createOpenAICompatible({
+        name: 'zai',
+        baseURL: 'https://api.zai.chat/v1',
+        apiKey,
+      }) as unknown as ProviderInstance,
+    apiKeyEnvVar: 'ZAI_API_KEY',
   },
 } as const;
 

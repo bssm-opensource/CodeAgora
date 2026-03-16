@@ -12,6 +12,11 @@ export const PROVIDER_ENV_VARS: Record<string, string> = {
   cerebras: 'CEREBRAS_API_KEY',
   together: 'TOGETHER_API_KEY',
   xai: 'XAI_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  qwen: 'QWEN_API_KEY',
+  zai: 'ZAI_API_KEY',
 };
 
 /**
