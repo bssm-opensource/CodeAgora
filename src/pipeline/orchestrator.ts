@@ -18,7 +18,7 @@ import { makeHeadVerdict, scanUnconfirmedQueue } from '../l3/verdict.js';
 import { writeHeadVerdict } from '../l3/writer.js';
 import { QualityTracker } from '../l0/quality-tracker.js';
 import { resolveReviewers, getBanditStore } from '../l0/index.js';
-import type { EvidenceDocument, ReviewOutput } from '../types/core.js';
+import type { EvidenceDocument, ReviewOutput, DiscussionVerdict } from '../types/core.js';
 import { SEVERITY_ORDER } from '../types/core.js';
 import type { ProgressEmitter } from './progress.js';
 import type { ReviewerInput } from '../l1/reviewer.js';
@@ -56,6 +56,10 @@ export interface PipelineResult {
   status: 'success' | 'error';
   error?: string;
   summary?: PipelineSummary;
+  evidenceDocs?: EvidenceDocument[];
+  discussions?: DiscussionVerdict[];
+  /** Maps "filePath:startLine" → reviewer IDs that flagged the issue */
+  reviewerMap?: Record<string, string[]>;
 }
 
 /**
@@ -315,6 +319,9 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
         resolved: moderatorReport.summary.resolved,
         escalated: moderatorReport.summary.escalated,
       },
+      evidenceDocs: allEvidenceDocs,
+      discussions: moderatorReport.discussions,
+      reviewerMap: buildReviewerMap(allReviewResults),
     };
   } catch (error) {
     // Mark session as failed if it was created
@@ -334,6 +341,23 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 // ============================================================================
 // Chunk Merge Helper
 // ============================================================================
+
+/**
+ * Build a map of "filePath:startLine" → reviewer IDs that flagged the issue.
+ */
+function buildReviewerMap(results: ReviewOutput[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const r of results) {
+    for (const doc of r.evidenceDocs) {
+      const key = `${doc.filePath}:${doc.lineRange[0]}`;
+      if (!map[key]) map[key] = [];
+      if (!map[key].includes(r.reviewerId)) {
+        map[key].push(r.reviewerId);
+      }
+    }
+  }
+  return map;
+}
 
 /**
  * Merge ReviewOutputs by reviewerId for QualityTracker.
