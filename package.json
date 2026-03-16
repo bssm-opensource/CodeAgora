@@ -6,7 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/justn-hyeok/CodeAgora.git"
+    "url": "git+https://github.com/bssm-oss/CodeAgora.git"
+  },
+  "homepage": "https://github.com/bssm-oss/CodeAgora#readme",
+  "bugs": {
+    "url": "https://github.com/bssm-oss/CodeAgora/issues"
   },
   "keywords": [
     "code-review",
