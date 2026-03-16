@@ -1,11 +1,9 @@
 {
-  "reviewers": {
-    "count": 3,
-    "constraints": {
-      "minFamilies": 1,
-      "tierMin": "C"
-    }
-  },
+  "reviewers": [
+    { "id": "r1", "model": "llama-3.3-70b-versatile", "backend": "api", "provider": "groq", "timeout": 120 },
+    { "id": "r2", "model": "llama-3.1-8b-instant", "backend": "api", "provider": "groq", "timeout": 120 },
+    { "id": "r3", "model": "gemma2-9b-it", "backend": "api", "provider": "groq", "timeout": 120 }
+  ],
   "supporters": {
     "pool": [
       {
