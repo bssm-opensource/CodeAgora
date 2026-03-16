@@ -2,7 +2,7 @@
 
 **Where LLMs Debate Your Code**
 
-![Version](https://img.shields.io/badge/version-1.0.0--rc.3-blue)
+[![Version](https://img.shields.io/npm/v/codeagora)](https://www.npmjs.com/package/codeagora)
 ![Tests](https://img.shields.io/badge/tests-1300%20passing-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
