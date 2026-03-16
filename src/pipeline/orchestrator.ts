@@ -281,7 +281,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
     // === L3 HEAD: Final Verdict ===
     progress?.stageStart('verdict', 'Generating verdict...');
-    const headVerdict = makeHeadVerdict(moderatorReport);
+    const headVerdict = await makeHeadVerdict(moderatorReport, config.head);
     await writeHeadVerdict(date, sessionId, headVerdict);
     progress?.stageComplete('verdict', 'Verdict complete');
 

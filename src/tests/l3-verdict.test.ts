@@ -50,14 +50,14 @@ function makeEvidenceDoc(overrides: Partial<EvidenceDocument> = {}): EvidenceDoc
 
 describe('makeHeadVerdict()', () => {
   describe('ACCEPT decision', () => {
-    it('returns ACCEPT when there are no discussions at all', () => {
+    it('returns ACCEPT when there are no discussions at all', async () => {
       const report = makeReport();
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('ACCEPT');
     });
 
-    it('returns ACCEPT when all discussions are consensus and none are critical', () => {
+    it('returns ACCEPT when all discussions are consensus and none are critical', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'WARNING', consensusReached: true }),
@@ -65,52 +65,52 @@ describe('makeHeadVerdict()', () => {
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('ACCEPT');
     });
 
-    it('ACCEPT reasoning mentions code is ready to merge', () => {
+    it('ACCEPT reasoning mentions code is ready to merge', async () => {
       const report = makeReport();
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.reasoning.toLowerCase()).toContain('merge');
     });
 
-    it('ACCEPT verdict has no questionsForHuman', () => {
+    it('ACCEPT verdict has no questionsForHuman', async () => {
       const report = makeReport();
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.questionsForHuman).toBeUndefined();
     });
   });
 
   describe('REJECT due to CRITICAL issues', () => {
-    it('returns REJECT when a CRITICAL discussion exists', () => {
+    it('returns REJECT when a CRITICAL discussion exists', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'CRITICAL', consensusReached: true }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('REJECT');
     });
 
-    it('returns REJECT when a HARSHLY_CRITICAL discussion exists', () => {
+    it('returns REJECT when a HARSHLY_CRITICAL discussion exists', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'HARSHLY_CRITICAL', consensusReached: true }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('REJECT');
     });
 
-    it('REJECT reasoning mentions the number of critical issues', () => {
+    it('REJECT reasoning mentions the number of critical issues', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'CRITICAL', consensusReached: true }),
@@ -118,26 +118,26 @@ describe('makeHeadVerdict()', () => {
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.reasoning).toContain('2');
     });
 
-    it('REJECT with only critical issues and no escalations has no questionsForHuman', () => {
+    it('REJECT with only critical issues and no escalations has no questionsForHuman', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'CRITICAL', consensusReached: true }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.questionsForHuman).toBeUndefined();
     });
   });
 
   describe('REJECT with mixed critical + escalated issues', () => {
-    it('returns REJECT when both critical and escalated issues exist', () => {
+    it('returns REJECT when both critical and escalated issues exist', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'CRITICAL', consensusReached: true }),
@@ -145,12 +145,12 @@ describe('makeHeadVerdict()', () => {
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('REJECT');
     });
 
-    it('includes questionsForHuman when critical + escalated both present', () => {
+    it('includes questionsForHuman when critical + escalated both present', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'CRITICAL', consensusReached: true }),
@@ -158,7 +158,7 @@ describe('makeHeadVerdict()', () => {
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.questionsForHuman).toBeDefined();
       expect(verdict.questionsForHuman!.length).toBeGreaterThan(0);
@@ -166,19 +166,19 @@ describe('makeHeadVerdict()', () => {
   });
 
   describe('NEEDS_HUMAN decision', () => {
-    it('returns NEEDS_HUMAN when there are escalated issues but no critical ones', () => {
+    it('returns NEEDS_HUMAN when there are escalated issues but no critical ones', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'WARNING', consensusReached: false }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.decision).toBe('NEEDS_HUMAN');
     });
 
-    it('NEEDS_HUMAN includes questionsForHuman listing each escalated issue', () => {
+    it('NEEDS_HUMAN includes questionsForHuman listing each escalated issue', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'WARNING', consensusReached: false }),
@@ -186,31 +186,31 @@ describe('makeHeadVerdict()', () => {
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.questionsForHuman).toHaveLength(2);
     });
 
-    it('NEEDS_HUMAN questionsForHuman entries reference the discussion IDs', () => {
+    it('NEEDS_HUMAN questionsForHuman entries reference the discussion IDs', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd042', finalSeverity: 'WARNING', consensusReached: false }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.questionsForHuman![0]).toContain('d042');
     });
 
-    it('NEEDS_HUMAN reasoning mentions consensus was not reached', () => {
+    it('NEEDS_HUMAN reasoning mentions consensus was not reached', async () => {
       const report = makeReport({
         discussions: [
           makeVerdict({ discussionId: 'd001', finalSeverity: 'WARNING', consensusReached: false }),
         ],
       });
 
-      const verdict = makeHeadVerdict(report);
+      const verdict = await makeHeadVerdict(report);
 
       expect(verdict.reasoning.toLowerCase()).toContain('consensus');
     });

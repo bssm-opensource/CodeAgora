@@ -187,10 +187,19 @@ export const ChunkingConfigSchema = z.object({
 });
 export type ChunkingConfig = z.infer<typeof ChunkingConfigSchema>;
 
+export const HeadConfigSchema = z.object({
+  backend: BackendSchema,
+  model: z.string(),
+  provider: z.string().optional(),
+  enabled: z.boolean().default(true),
+});
+export type HeadConfig = z.infer<typeof HeadConfigSchema>;
+
 export const ConfigSchema = z.object({
   reviewers: ReviewersFieldSchema,
   supporters: SupporterPoolConfigSchema,
   moderator: ModeratorConfigSchema,
+  head: HeadConfigSchema.optional(),
   discussion: DiscussionSettingsSchema,
   errorHandling: ErrorHandlingSchema,
   chunking: ChunkingConfigSchema.optional(),
