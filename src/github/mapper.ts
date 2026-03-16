@@ -270,8 +270,9 @@ export function mapToGitHubReview(params: {
   headSha: string;
   sessionId: string;
   sessionDate: string;
+  reviewerMap?: Map<string, string[]>;
 }): GitHubReview {
-  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate } =
+  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate, reviewerMap } =
     params;
 
   // Filter out dismissed docs
@@ -284,7 +285,7 @@ export function mapToGitHubReview(params: {
     return d?.finalSeverity !== 'DISMISSED';
   });
 
-  const comments = buildReviewComments(activeDocs, discussions, positionIndex);
+  const comments = buildReviewComments(activeDocs, discussions, positionIndex, reviewerMap);
   const body = buildSummaryBody({ summary, sessionId, sessionDate, evidenceDocs: activeDocs, discussions });
 
   // Determine event: REQUEST_CHANGES if any CRITICAL/HARSHLY_CRITICAL remains

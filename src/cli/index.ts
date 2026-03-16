@@ -256,6 +256,7 @@ program
         if (!options.quiet) console.error('Posting review to GitHub...');
         const ghConfig = { token: process.env['GITHUB_TOKEN'] ?? '', owner: prContext.owner, repo: prContext.repo };
         const positionIndex = buildDiffPositionIndex(prContext.diff);
+        const cliReviewerMap = result.reviewerMap ? new Map(Object.entries(result.reviewerMap)) : undefined;
         const review = mapToGitHubReview({
           summary: result.summary,
           evidenceDocs: result.evidenceDocs ?? [],
@@ -264,6 +265,7 @@ program
           headSha: prContext.headSha,
           sessionId: result.sessionId,
           sessionDate: result.date,
+          reviewerMap: cliReviewerMap,
         });
         const postResult = await postReview(ghConfig, prContext.prNumber, review);
         await setCommitStatus(ghConfig, prContext.headSha, postResult.verdict, postResult.reviewUrl);

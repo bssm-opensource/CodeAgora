@@ -58,6 +58,8 @@ export interface PipelineResult {
   summary?: PipelineSummary;
   evidenceDocs?: EvidenceDocument[];
   discussions?: DiscussionVerdict[];
+  /** Maps "filePath:startLine" → reviewer IDs that flagged the issue */
+  reviewerMap?: Record<string, string[]>;
 }
 
 /**
@@ -319,6 +321,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       },
       evidenceDocs: allEvidenceDocs,
       discussions: moderatorReport.discussions,
+      reviewerMap: buildReviewerMap(allReviewResults),
     };
   } catch (error) {
     // Mark session as failed if it was created
@@ -338,6 +341,23 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 // ============================================================================
 // Chunk Merge Helper
 // ============================================================================
+
+/**
+ * Build a map of "filePath:startLine" → reviewer IDs that flagged the issue.
+ */
+function buildReviewerMap(results: ReviewOutput[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const r of results) {
+    for (const doc of r.evidenceDocs) {
+      const key = `${doc.filePath}:${doc.lineRange[0]}`;
+      if (!map[key]) map[key] = [];
+      if (!map[key].includes(r.reviewerId)) {
+        map[key].push(r.reviewerId);
+      }
+    }
+  }
+  return map;
+}
 
 /**
  * Merge ReviewOutputs by reviewerId for QualityTracker.

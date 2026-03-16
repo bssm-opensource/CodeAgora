@@ -95,9 +95,10 @@ async function main(): Promise<void> {
   const diffContent = await fs.readFile(inputs.diff, 'utf-8');
   const positionIndex = buildDiffPositionIndex(diffContent);
 
-  // Use full evidence docs and discussions from pipeline result
+  // Use full evidence docs, discussions, and reviewer map from pipeline result
   const evidenceDocs = result.evidenceDocs ?? [];
   const discussions = result.discussions ?? [];
+  const reviewerMap = result.reviewerMap ? new Map(Object.entries(result.reviewerMap)) : undefined;
 
   // Build and post review
   const ghConfig = { token: inputs.token, owner, repo };
@@ -111,6 +112,7 @@ async function main(): Promise<void> {
     headSha: inputs.sha,
     sessionId: result.sessionId,
     sessionDate: result.date,
+    reviewerMap,
   });
 
   const postResult = await postReview(ghConfig, inputs.pr, review);
