@@ -13,7 +13,6 @@ import { runPipeline } from './pipeline/orchestrator.js';
 import { buildDiffPositionIndex } from './github/diff-parser.js';
 import { mapToGitHubReview } from './github/mapper.js';
 import { postReview, setCommitStatus } from './github/poster.js';
-import type { EvidenceDocument } from './types/core.js';
 
 // ============================================================================
 // Input Parsing
@@ -96,17 +95,9 @@ async function main(): Promise<void> {
   const diffContent = await fs.readFile(inputs.diff, 'utf-8');
   const positionIndex = buildDiffPositionIndex(diffContent);
 
-  // Build evidence docs from summary topIssues (limited data available)
-  // In a full implementation, we'd read the session files for complete EvidenceDocuments
-  const evidenceDocs: EvidenceDocument[] = result.summary.topIssues.map((i) => ({
-    issueTitle: i.title,
-    problem: '',
-    evidence: [],
-    severity: i.severity as EvidenceDocument['severity'],
-    suggestion: '',
-    filePath: i.filePath,
-    lineRange: i.lineRange,
-  }));
+  // Use full evidence docs and discussions from pipeline result
+  const evidenceDocs = result.evidenceDocs ?? [];
+  const discussions = result.discussions ?? [];
 
   // Build and post review
   const ghConfig = { token: inputs.token, owner, repo };
@@ -115,7 +106,7 @@ async function main(): Promise<void> {
   const review = mapToGitHubReview({
     summary: result.summary,
     evidenceDocs,
-    discussions: [],
+    discussions,
     positionIndex,
     headSha: inputs.sha,
     sessionId: result.sessionId,

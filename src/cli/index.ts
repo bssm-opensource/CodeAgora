@@ -258,16 +258,8 @@ program
         const positionIndex = buildDiffPositionIndex(prContext.diff);
         const review = mapToGitHubReview({
           summary: result.summary,
-          evidenceDocs: result.summary.topIssues.map((i) => ({
-            issueTitle: i.title,
-            problem: '',
-            evidence: [],
-            severity: i.severity as 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION',
-            suggestion: '',
-            filePath: i.filePath,
-            lineRange: i.lineRange,
-          })),
-          discussions: [],
+          evidenceDocs: result.evidenceDocs ?? [],
+          discussions: result.discussions ?? [],
           positionIndex,
           headSha: prContext.headSha,
           sessionId: result.sessionId,
