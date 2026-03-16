@@ -28,6 +28,10 @@
     "backend": "api",
     "provider": "groq"
   },
+  "head": {
+    "backend": "claude",
+    "model": "claude-sonnet-4-20250514"
+  },
   "discussion": {
     "maxRounds": 3,
     "registrationThreshold": {
