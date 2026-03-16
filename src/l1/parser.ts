@@ -19,16 +19,6 @@ export function parseEvidenceResponse(
   response: string,
   diffFilePaths?: string[]
 ): EvidenceDocument[] {
-  // Check for "no issues" response
-  const lowerResponse = response.toLowerCase();
-  if (
-    lowerResponse.includes('no issues found') ||
-    lowerResponse.includes('no problems found') ||
-    lowerResponse.includes('looks good')
-  ) {
-    return [];
-  }
-
   const documents: EvidenceDocument[] = [];
   const matches = Array.from(response.matchAll(EVIDENCE_BLOCK_REGEX));
 
@@ -57,6 +47,19 @@ export function parseEvidenceResponse(
     } catch (_error) {
       // Skip malformed evidence blocks
       continue;
+    }
+  }
+
+  // Only treat as "no issues" when no evidence blocks were parsed AND
+  // the response explicitly says so (not just contains the phrase in passing)
+  if (documents.length === 0) {
+    const lowerResponse = response.toLowerCase().trim();
+    if (
+      lowerResponse.includes('no issues found') ||
+      lowerResponse.includes('no problems found') ||
+      /^(the\s+)?(code\s+)?looks\s+good/m.test(lowerResponse)
+    ) {
+      return [];
     }
   }
 

@@ -144,7 +144,13 @@ async function main(): Promise<void> {
 function setActionOutput(name: string, value: string): void {
   const outputFile = process.env['GITHUB_OUTPUT'];
   if (outputFile) {
-    appendFileSync(outputFile, `${name}=${value}\n`);
+    if (value.includes('\n')) {
+      // Use heredoc delimiter for multiline values
+      const delimiter = `EOF_${Date.now()}`;
+      appendFileSync(outputFile, `${name}<<${delimiter}\n${value}\n${delimiter}\n`);
+    } else {
+      appendFileSync(outputFile, `${name}=${value}\n`);
+    }
   } else {
     // Fallback for older runners
     console.log(`::set-output name=${name}::${value}`);
