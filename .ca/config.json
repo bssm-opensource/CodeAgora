@@ -1,0 +1,50 @@
+{
+  "reviewers": {
+    "count": 3,
+    "constraints": {
+      "minFamilies": 1,
+      "tierMin": "C"
+    }
+  },
+  "supporters": {
+    "pool": [
+      {
+        "id": "s1",
+        "model": "llama-3.3-70b-versatile",
+        "backend": "api",
+        "provider": "groq",
+        "timeout": 120
+      }
+    ],
+    "pickCount": 1,
+    "pickStrategy": "random",
+    "devilsAdvocate": {
+      "id": "da",
+      "model": "llama-3.3-70b-versatile",
+      "backend": "api",
+      "provider": "groq",
+      "timeout": 120
+    },
+    "personaPool": ["strict"],
+    "personaAssignment": "random"
+  },
+  "moderator": {
+    "model": "llama-3.3-70b-versatile",
+    "backend": "api",
+    "provider": "groq"
+  },
+  "discussion": {
+    "maxRounds": 2,
+    "registrationThreshold": {
+      "HARSHLY_CRITICAL": 1,
+      "CRITICAL": 1,
+      "WARNING": 2,
+      "SUGGESTION": null
+    },
+    "codeSnippetRange": 10
+  },
+  "errorHandling": {
+    "maxRetries": 1,
+    "forfeitThreshold": 0.7
+  }
+}
