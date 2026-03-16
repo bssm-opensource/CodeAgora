@@ -1,21 +1,21 @@
 {
   "reviewers": [
     { "id": "r1-llama-70b", "model": "llama-3.3-70b-versatile", "backend": "api", "provider": "groq", "timeout": 120 },
-    { "id": "r2-gemma-9b", "model": "gemma2-9b-it", "backend": "api", "provider": "groq", "timeout": 120 },
-    { "id": "r3-qwen-32b", "model": "qwen-2.5-coder-32b", "backend": "api", "provider": "groq", "timeout": 120 },
-    { "id": "r4-deepseek-70b", "model": "deepseek-r1-distill-llama-70b", "backend": "api", "provider": "groq", "timeout": 120 },
-    { "id": "r5-mistral-24b", "model": "mistral-saba-24b", "backend": "api", "provider": "groq", "timeout": 120 }
+    { "id": "r2-llama-8b", "model": "llama-3.1-8b-instant", "backend": "api", "provider": "groq", "timeout": 120 },
+    { "id": "r3-qwen3-32b", "model": "qwen/qwen3-32b", "backend": "api", "provider": "groq", "timeout": 120 },
+    { "id": "r4-gpt-oss-120b", "model": "openai/gpt-oss-120b", "backend": "api", "provider": "groq", "timeout": 120 },
+    { "id": "r5-kimi-k2", "model": "moonshotai/kimi-k2-instruct-0905", "backend": "api", "provider": "groq", "timeout": 120 }
   ],
   "supporters": {
     "pool": [
       { "id": "s1-llama-70b", "model": "llama-3.3-70b-versatile", "backend": "api", "provider": "groq", "timeout": 120 },
-      { "id": "s2-qwen-32b", "model": "qwen-2.5-coder-32b", "backend": "api", "provider": "groq", "timeout": 120 }
+      { "id": "s2-qwen3-32b", "model": "qwen/qwen3-32b", "backend": "api", "provider": "groq", "timeout": 120 }
     ],
     "pickCount": 2,
     "pickStrategy": "random",
     "devilsAdvocate": {
-      "id": "da-deepseek-70b",
-      "model": "deepseek-r1-distill-llama-70b",
+      "id": "da-gpt-oss-120b",
+      "model": "openai/gpt-oss-120b",
       "backend": "api",
       "provider": "groq",
       "timeout": 120
