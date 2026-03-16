@@ -49,7 +49,34 @@ function truncate(text: string, max: number): string {
   return text.slice(0, max - 3) + '...';
 }
 
+const ALLOWED_WEBHOOK_HOSTS = new Set([
+  'discord.com',
+  'discordapp.com',
+  'hooks.slack.com',
+  'slack.com',
+]);
+
+function validateWebhookUrl(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error('Invalid webhook URL');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Webhook URL must use HTTPS');
+  }
+  const host = parsed.hostname.toLowerCase();
+  const isAllowed = [...ALLOWED_WEBHOOK_HOSTS].some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`),
+  );
+  if (!isAllowed) {
+    throw new Error(`Webhook host not allowed: ${host}. Supported: Discord, Slack`);
+  }
+}
+
 async function postWebhook(url: string, body: unknown): Promise<void> {
+  validateWebhookUrl(url);
   const maxAttempts = 2;
   for (let i = 0; i < maxAttempts; i++) {
     try {
