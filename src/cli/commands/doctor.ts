@@ -62,13 +62,13 @@ async function fileExists(filePath: string): Promise<boolean> {
 function checkNodeVersion(): DoctorCheck {
   const version = process.version; // e.g. "v22.0.0"
   const major = parseInt(version.slice(1).split('.')[0], 10);
-  if (major >= 18) {
+  if (major >= 20) {
     return { name: 'Node.js version', status: 'pass', message: `Node.js ${version}` };
   }
   return {
     name: 'Node.js version',
     status: 'fail',
-    message: `Node.js ${version} — v18+ required`,
+    message: `Node.js ${version} — v20+ required`,
   };
 }
 

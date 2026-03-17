@@ -107,9 +107,9 @@ export function dryRun(config: Config, diffContent: string): DryRunResult {
   // ---- Token estimation ----
   const diffTokens = estimateTokensFromDiff(diffContent);
 
-  // L1: each reviewer gets the diff as input; output ≈ 2x input
+  // L1: each reviewer gets the diff as input; output ≈ 1.5x input
   const l1InputTokens = diffTokens * reviewers.length;
-  const l1OutputTokens = l1InputTokens * 2;
+  const l1OutputTokens = Math.ceil(l1InputTokens * 1.5);
   const estimatedL1Tokens = l1InputTokens + l1OutputTokens;
 
   // L2: discussion rounds × supporters × avg_tokens_per_turn

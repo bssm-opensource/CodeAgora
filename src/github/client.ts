@@ -38,7 +38,7 @@ export interface PullRequestInfo {
 export function parsePrUrl(
   url: string
 ): { owner: string; repo: string; number: number } | null {
-  const match = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/.exec(url);
+  const match = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:[/?#].*)?$/.exec(url);
   if (!match) return null;
   const [, owner, repo, numStr] = match;
   const number = parseInt(numStr, 10);

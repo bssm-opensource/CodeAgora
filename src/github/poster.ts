@@ -38,6 +38,9 @@ export async function postReview(
   }
 
   // Step 2: Truncate comments if over the limit
+  if (review.comments.length > MAX_COMMENTS_PER_REVIEW) {
+    console.warn(`[GitHub] Truncating ${review.comments.length} comments to ${MAX_COMMENTS_PER_REVIEW} (MAX_INLINE_COMMENTS limit)`);
+  }
   const comments = review.comments.slice(0, MAX_COMMENTS_PER_REVIEW);
 
   // Filter out file-level comments (no position) into separate array
@@ -64,7 +67,8 @@ export async function postReview(
     data = response.data;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('position') || message.includes('422') || message.includes('Unprocessable')) {
+    const status = (err as { status?: number }).status;
+    if (status === 422 || message.includes('position') || message.includes('Unprocessable')) {
       // Fallback: post review without inline comments
       const response = await kit.pulls.createReview({
         owner: config.owner,
@@ -89,8 +93,8 @@ export async function postReview(
       repo: config.repo,
       issue_number: prNumber,
       body: comment.body,
-    }).catch(() => {
-      // Non-fatal: file-level comments are supplementary
+    }).catch((err) => {
+      console.warn(`[GitHub] Failed to post file-level comment: ${err instanceof Error ? err.message : err}`);
     });
   }
 

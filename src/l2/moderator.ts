@@ -197,6 +197,22 @@ async function runDiscussion(
     return verdict;
   }
 
+  // L-15: If no supporters are enabled and devil's advocate is off, skip discussion
+  const enabledPoolL15 = supporterPoolConfig.pool.filter((s) => s.enabled);
+  if (enabledPoolL15.length === 0 && !supporterPoolConfig.devilsAdvocate.enabled) {
+    const skippedVerdict: DiscussionVerdict = {
+      discussionId: discussion.id,
+      filePath: discussion.filePath,
+      lineRange: discussion.lineRange,
+      finalSeverity: discussion.severity as DiscussionVerdict['finalSeverity'],
+      reasoning: 'No supporters available — discussion skipped',
+      consensusReached: false,
+      rounds: 0,
+    };
+    await writeDiscussionVerdict(date, sessionId, skippedVerdict);
+    return skippedVerdict;
+  }
+
   // Select supporters for this discussion
   const selectedSupporters = selectSupporters(supporterPoolConfig);
 
@@ -222,8 +238,8 @@ async function runDiscussion(
     // Write round file
     await writeDiscussionRound(date, sessionId, discussion.id, round);
 
-    // Check for consensus
-    const consensus = checkConsensus(round, discussion);
+    // Check for consensus; on last round, force decision on tie
+    const consensus = checkConsensus(round, discussion, roundNum === settings.maxRounds);
     if (consensus.reached) {
       // Only run objection protocol on agree-consensus (not dismiss)
       if (consensus.severity !== 'DISMISSED' && objectionRoundsUsed < maxObjectionRounds) {
@@ -240,7 +256,7 @@ async function runDiscussion(
 
           // Write synthetic objection round for logging
           const objectionRound: DiscussionRound = {
-            round: roundNum * 10 + 1, // synthetic objection round (e.g., round 2 → 21)
+            round: roundNum * 100 + 1, // synthetic objection round (e.g., round 2 → 201, no collision at round >= 10)
             moderatorPrompt: `Objection check after consensus declaration: "${consensusDeclaration}"`,
             supporterResponses: objectionResult.objections.map((o) => ({
               supporterId: o.supporterId,
@@ -373,7 +389,7 @@ interface ConsensusResult {
   reasoning?: string;
 }
 
-function checkConsensus(round: DiscussionRound, discussion: Discussion): ConsensusResult {
+function checkConsensus(round: DiscussionRound, discussion: Discussion, isLastRound = false): ConsensusResult {
   const supporters = round.supporterResponses;
 
   // No consensus possible with zero participants
@@ -419,6 +435,15 @@ function checkConsensus(round: DiscussionRound, discussion: Discussion): Consens
       reached: true,
       severity: 'DISMISSED',
       reasoning: `Majority rejected (${disagreeCount}/${supporters.length} disagree)`,
+    };
+  }
+
+  // Tie (agree === disagree) on last round: forced decision — preserve original severity
+  if (isLastRound && decidingVotes > 0 && agreeCount === disagreeCount) {
+    return {
+      reached: true,
+      severity: discussion.severity as ConsensusResult['severity'],
+      reasoning: `Tie broken by forced decision on last round (${agreeCount} agree, ${disagreeCount} disagree)`,
     };
   }
 
@@ -512,23 +537,20 @@ Evaluate the evidence and provide your verdict.`;
 }
 
 function parseStance(response: string): 'agree' | 'disagree' | 'neutral' {
-  // Check first line for explicit stance keyword to avoid misclassification
-  // e.g. "I agree that we should disagree" would wrongly match disagree with substring
-  const firstLine = response.split('\n')[0].toLowerCase().trim();
+  const firstLine = response.split('\n')[0].toUpperCase().trim();
 
-  // Exact keyword at start of first line takes priority
-  if (/^(stance:\s*)?agree\b/i.test(firstLine)) return 'agree';
-  if (/^(stance:\s*)?disagree\b/i.test(firstLine)) return 'disagree';
-  if (/^(stance:\s*)?neutral\b/i.test(firstLine)) return 'neutral';
+  // First line explicit stance declaration takes priority.
+  // Check DISAGREE before AGREE since "DISAGREE" contains "AGREE" as a substring.
+  if (firstLine.includes('DISAGREE')) return 'disagree';
+  if (firstLine.includes('AGREE')) return 'agree';
+  if (firstLine.includes('NEUTRAL')) return 'neutral';
 
-  // Fallback: scan full response but require standalone word boundaries
+  // Fallback: keyword counting on full response
   const lower = response.toLowerCase();
-  const agreeMatch = lower.match(/\b(agree)\b/g);
-  const disagreeMatch = lower.match(/\b(disagree)\b/g);
-
-  // disagree contains "agree" so count disagree first, subtract from agree
-  const agreeCount = (agreeMatch?.length ?? 0) - (disagreeMatch?.length ?? 0);
-  const disagreeCount = disagreeMatch?.length ?? 0;
+  // Count disagree first (it contains "agree" as substring)
+  const disagreeCount = (lower.match(/\bdisagree\b/g) ?? []).length;
+  // Pure agree = total agree matches minus those that are part of "disagree"
+  const agreeCount = (lower.match(/\bagree\b/g) ?? []).length - disagreeCount;
 
   if (agreeCount > disagreeCount) return 'agree';
   if (disagreeCount > agreeCount) return 'disagree';
@@ -539,7 +561,7 @@ function parseForcedDecision(response: string): { severity: 'HARSHLY_CRITICAL' |
   // Check first few lines for explicit severity keyword
   const firstLines = response.split('\n').slice(0, 5).join('\n').toLowerCase();
 
-  let severity: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED' = 'SUGGESTION';
+  let severity: 'HARSHLY_CRITICAL' | 'CRITICAL' | 'WARNING' | 'SUGGESTION' | 'DISMISSED' = 'WARNING';
 
   // Match most specific first (harshly_critical before critical)
   if (/\b(harshly[_\s]critical)\b/.test(firstLines)) severity = 'HARSHLY_CRITICAL';

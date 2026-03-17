@@ -114,7 +114,7 @@ export async function resolveReviewers(
     ? Object.entries(routerConfig.providers)
         .filter(([, v]) => (v as { enabled: boolean }).enabled)
         .map(([k]) => k)
-    : ['groq', 'nvidia-nim', 'openrouter'];
+    : ['groq', 'nim', 'openrouter'];
 
   const allModels = getAvailableModels(providerNames);
 

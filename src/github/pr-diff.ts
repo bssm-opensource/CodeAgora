@@ -39,11 +39,18 @@ export async function fetchPrDiff(
   // When format is 'diff', the response data is the raw diff string
   const diff = diffResponse.data as unknown as string;
 
+  const diffContent = typeof diff === 'string' ? diff : '';
+
+  const MAX_DIFF_SIZE = 500000; // 500KB
+  if (diffContent.length >= MAX_DIFF_SIZE) {
+    console.warn('[GitHub] Diff may be truncated (>500KB). Some files may be missing from review.');
+  }
+
   return {
     number: pr.number,
     title: pr.title,
     baseBranch: pr.base.ref,
     headBranch: pr.head.ref,
-    diff: typeof diff === 'string' ? diff : '',
+    diff: diffContent,
   };
 }

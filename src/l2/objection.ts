@@ -96,9 +96,11 @@ As a supporter, do you OBJECT to this consensus?
 Your response:`;
 }
 
+const CONSENT_PATTERNS = [/no objection/i, /i accept/i, /i agree/i, /agree with/i, /concur/i, /support the/i];
+
 function parseObjectionResponse(response: string): boolean {
-  const lower = response.toLowerCase();
-  return !lower.includes('no objection') && !lower.includes("don't object");
+  if (CONSENT_PATTERNS.some((p) => p.test(response))) return false;
+  return !response.toLowerCase().includes("don't object");
 }
 
 /**

@@ -6,16 +6,18 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pin to SHA for production use. Major tags used here for readability.
+      - uses: actions/checkout@v4  # Consider SHA pinning for production
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4  # Consider SHA pinning for production
         with:
           node-version: '20'
 
@@ -36,7 +38,7 @@ jobs:
           script: |
             const fs = require('fs');
             const output = fs.readFileSync('/tmp/review-output.md', 'utf8');
-            const marker = '<!-- codeagora-review -->';
+            const marker = '<!-- codeagora-v3 -->';
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

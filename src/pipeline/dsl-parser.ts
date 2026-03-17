@@ -23,6 +23,9 @@ const VALID_ERROR_ACTIONS = ['skip', 'retry', 'abort'];
 
 /**
  * Parse a YAML string into a PipelineDefinition with full validation.
+ *
+ * @experimental DSL is not yet wired into the orchestrator. The pipeline
+ * currently uses a hardcoded L1 → L2 → L3 flow. DSL integration is planned.
  */
 export function parsePipelineDsl(yamlContent: string): ParseResult {
   const errors: string[] = [];

@@ -25,12 +25,22 @@ export function buildDiffPositionIndex(unifiedDiff: string): DiffPositionIndex {
     // Skip --- lines
     if (line.startsWith('--- ')) continue;
 
-    // New file: "+++ b/src/foo.ts" → "src/foo.ts"
+    // New file: "+++ b/src/foo.ts" → "src/foo.ts"; "+++ /dev/null" → null (deleted file)
     if (line.startsWith('+++ ')) {
-      currentFile = line.startsWith('+++ b/') ? line.slice(6) : line.slice(4);
+      if (line === '+++ /dev/null') {
+        currentFile = '';
+      } else {
+        currentFile = line.startsWith('+++ b/') ? line.slice(6) : line.slice(4);
+      }
       filePosition = 0;
       continue;
     }
+
+    // Binary files line → skip
+    if (line.startsWith('Binary files ')) continue;
+
+    // No newline at end of file → skip (do not count position)
+    if (line.startsWith('\\ No newline')) continue;
 
     // Hunk header: "@@ -42,8 +42,10 @@"
     if (line.startsWith('@@')) {
@@ -39,6 +49,9 @@ export function buildDiffPositionIndex(unifiedDiff: string): DiffPositionIndex {
       filePosition++;
       continue;
     }
+
+    // Skip hunks for deleted files (currentFile is empty)
+    if (!currentFile) continue;
 
     // Deleted line: counts toward position but doesn't advance newLineNumber
     if (line.startsWith('-')) {

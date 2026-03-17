@@ -28,6 +28,7 @@ import { analyzeTrivialDiff } from './auto-approve.js';
 import { computeL1Confidence, adjustConfidenceFromDiscussion } from './confidence.js';
 import { loadLearnedPatterns } from '../learning/store.js';
 import { applyLearnedPatterns } from '../learning/filter.js';
+import { PipelineTelemetry } from './telemetry.js';
 import fs from 'fs/promises';
 
 // ============================================================================
@@ -78,6 +79,9 @@ export interface PipelineResult {
  */
 export async function runPipeline(input: PipelineInput, progress?: ProgressEmitter): Promise<PipelineResult> {
   let session: SessionManager | undefined;
+  // D-3: basic pipeline timing telemetry
+  const _telemetry = new PipelineTelemetry();
+  const _pipelineStartMs = Date.now();
 
   try {
     // Load credentials from ~/.config/codeagora/credentials
@@ -372,7 +376,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
     // === L3 HEAD: Final Verdict ===
     progress?.stageStart('verdict', 'Generating verdict...');
-    const headVerdict = await makeHeadVerdict(moderatorReport, config.head);
+    const headVerdict = await makeHeadVerdict(moderatorReport, config.head, config.mode, config.language);
     await writeHeadVerdict(date, sessionId, headVerdict);
     progress?.stageComplete('verdict', 'Verdict complete');
 

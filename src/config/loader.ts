@@ -186,8 +186,8 @@ export function expandDeclarativeReviewers(
 ): ReviewerEntry[] {
   const entries: ReviewerEntry[] = [];
 
-  // Add static reviewers if present
-  const staticReviewers = decl.static ?? [];
+  // Add static reviewers if present, truncated to count (C-2)
+  const staticReviewers = (decl.static ?? []).slice(0, decl.count);
   entries.push(...staticReviewers);
 
   // Fill remaining slots with auto reviewers

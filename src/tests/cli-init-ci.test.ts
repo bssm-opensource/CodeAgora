@@ -65,7 +65,7 @@ describe('writeGitHubWorkflow()', () => {
 
     const filePath = path.join(tmpDir, '.github', 'workflows', 'codeagora-review.yml');
     const content = await fs.readFile(filePath, 'utf-8');
-    expect(content).toContain('<!-- codeagora-review -->');
+    expect(content).toContain('<!-- codeagora-v3 -->');
   });
 
   it('written file contains actions/checkout and actions/setup-node steps', async () => {

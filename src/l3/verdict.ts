@@ -173,6 +173,7 @@ function parseHeadResponse(response: string, report: ModeratorReport): HeadVerdi
 
   if (!decisionMatch) {
     // Can't parse — fallback
+    console.warn('[Head] Failed to parse LLM response, falling back to rule-based verdict');
     return ruleBasedVerdict(report);
   }
 

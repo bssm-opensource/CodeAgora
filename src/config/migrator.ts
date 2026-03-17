@@ -254,6 +254,14 @@ export function applyMigration(config: Config, result: MigrationResult): Config 
     };
   }
 
+  // Add head field from moderator config if missing
+  const newHead = config.head ?? {
+    backend: 'api' as const,
+    model: newModerator.model,
+    provider: newModerator.provider,
+    enabled: true,
+  };
+
   return {
     ...config,
     reviewers: newReviewers,
@@ -263,5 +271,6 @@ export function applyMigration(config: Config, result: MigrationResult): Config 
       devilsAdvocate: newDevilsAdvocate,
     },
     moderator: newModerator,
+    head: newHead,
   };
 }

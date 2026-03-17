@@ -65,6 +65,11 @@ async function main(): Promise<void> {
   const inputs = parseArgs(process.argv);
   const [owner, repo] = inputs.repo.split('/');
 
+  if (!owner || !repo) {
+    console.error('Error: --repo must be in <owner>/<repo> format');
+    process.exit(1);
+  }
+
   // Check diff line count
   if (inputs.maxDiffLines > 0) {
     const diffContent = await fs.readFile(inputs.diff, 'utf-8');

@@ -17,7 +17,10 @@ export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
 };
 
 /**
- * Retry with exponential backoff
+ * Retry with exponential backoff.
+ *
+ * @internal Not yet used in production paths. Preserved for future use in L1
+ * retry logic where retryWithBackoff / retryOnError are directly applicable.
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,

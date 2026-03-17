@@ -7,6 +7,18 @@
   "google/gemini-2.5-flash": { "input": 0.00015, "output": 0.0006 },
   "google/gemini-2.5-pro": { "input": 0.00125, "output": 0.01 },
   "mistral/mistral-large-latest": { "input": 0.002, "output": 0.006 },
+  "mistral/mistral-small-latest": { "input": 0.0001, "output": 0.0003 },
+  "mistral/mistral-medium-latest": { "input": 0.0004, "output": 0.002 },
   "nvidia-nim/deepseek-r1": { "input": 0.0, "output": 0.0 },
-  "cerebras/llama-3.3-70b": { "input": 0.0, "output": 0.0 }
+  "cerebras/llama-3.3-70b": { "input": 0.0, "output": 0.0 },
+  "cerebras/llama-3.1-8b": { "input": 0.0, "output": 0.0 },
+  "groq/gemma2-9b-it": { "input": 0.0002, "output": 0.0002 },
+  "together/meta-llama/Llama-3.3-70B-Instruct-Turbo": { "input": 0.00088, "output": 0.00088 },
+  "together/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo": { "input": 0.00018, "output": 0.00018 },
+  "together/deepseek-ai/DeepSeek-R1": { "input": 0.003, "output": 0.007 },
+  "xai/grok-beta": { "input": 0.005, "output": 0.015 },
+  "xai/grok-2": { "input": 0.002, "output": 0.01 },
+  "openrouter/meta-llama/llama-3.3-70b-instruct": { "input": 0.00012, "output": 0.0003 },
+  "openrouter/deepseek/deepseek-r1": { "input": 0.0008, "output": 0.0024 },
+  "openrouter/mistral/mistral-large": { "input": 0.002, "output": 0.006 }
 }

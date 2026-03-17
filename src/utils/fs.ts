@@ -4,6 +4,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { z } from 'zod';
 import { SessionMetadata } from '../types/core.js';
 
 // ============================================================================
@@ -94,9 +95,11 @@ export async function writeJson(filePath: string, data: unknown): Promise<void> 
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-export async function readJson<T>(filePath: string): Promise<T> {
+export async function readJson<T>(filePath: string, schema?: z.ZodType<T>): Promise<T> {
   const content = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(content) as T;
+  const raw = JSON.parse(content);
+  if (schema) return schema.parse(raw);
+  return raw as T;
 }
 
 export async function writeMarkdown(
