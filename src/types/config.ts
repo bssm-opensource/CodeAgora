@@ -201,6 +201,13 @@ export type ReviewMode = z.infer<typeof ReviewModeSchema>;
 export const LanguageSchema = z.enum(['en', 'ko']).default('en');
 export type Language = z.infer<typeof LanguageSchema>;
 
+export const AutoApproveConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  maxLines: z.number().int().positive().default(5),
+  allowedFilePatterns: z.array(z.string()).default(['*.md', '*.txt', '*.rst', 'docs/**']),
+}).optional();
+export type AutoApproveConfig = z.infer<typeof AutoApproveConfigSchema>;
+
 export const ConfigSchema = z.object({
   mode: ReviewModeSchema.optional(),
   language: LanguageSchema.optional(),
@@ -214,6 +221,7 @@ export const ConfigSchema = z.object({
   modelRouter: ModelRouterConfigSchema.optional(),
   notifications: NotificationsConfigSchema.optional(),
   github: GitHubIntegrationSchema.optional(),
+  autoApprove: AutoApproveConfigSchema,
 });
 export type Config = z.infer<typeof ConfigSchema>;
 

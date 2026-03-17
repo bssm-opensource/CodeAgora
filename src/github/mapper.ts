@@ -8,6 +8,7 @@ import { SEVERITY_ORDER } from '../types/core.js';
 import type { GitHubReview, GitHubReviewComment, DiffPositionIndex } from './types.js';
 import { resolveLineRange } from './diff-parser.js';
 import type { PipelineSummary } from '../pipeline/orchestrator.js';
+import { getConfidenceBadge } from '../pipeline/confidence.js';
 
 // ============================================================================
 // Constants
@@ -45,6 +46,11 @@ export function mapToInlineCommentBody(
 
   lines.push(`${badge.emoji} **${badge.label}** \u2014 ${doc.issueTitle}`);
   lines.push('');
+  const confidenceBadge = getConfidenceBadge(doc.confidence);
+  if (confidenceBadge) {
+    lines.push(`**Confidence:** ${confidenceBadge}`);
+    lines.push('');
+  }
   lines.push(`**Problem:** ${doc.problem}`);
 
   if (doc.evidence.length > 0) {
@@ -191,12 +197,13 @@ export function buildSummaryBody(params: {
   if (blocking.length > 0) {
     lines.push('### Blocking Issues');
     lines.push('');
-    lines.push('| Severity | File | Line | Issue |');
-    lines.push('|----------|------|------|-------|');
+    lines.push('| Severity | File | Line | Issue | Confidence |');
+    lines.push('|----------|------|------|-------|------------|');
     for (const doc of blocking) {
       const badge = SEVERITY_BADGE[doc.severity]!;
+      const confCell = getConfidenceBadge(doc.confidence) || '—';
       lines.push(
-        `| ${badge.emoji} ${badge.label} | \`${doc.filePath}\` | ${doc.lineRange[0]}\u2013${doc.lineRange[1]} | ${doc.issueTitle} |`,
+        `| ${badge.emoji} ${badge.label} | \`${doc.filePath}\` | ${doc.lineRange[0]}\u2013${doc.lineRange[1]} | ${doc.issueTitle} | ${confCell} |`,
       );
     }
     lines.push('');
@@ -208,11 +215,12 @@ export function buildSummaryBody(params: {
     lines.push('<details>');
     lines.push(`<summary>${warnings.length} warning(s)</summary>`);
     lines.push('');
-    lines.push('| Severity | File | Line | Issue |');
-    lines.push('|----------|------|------|-------|');
+    lines.push('| Severity | File | Line | Issue | Confidence |');
+    lines.push('|----------|------|------|-------|------------|');
     for (const doc of warnings) {
+      const confCell = getConfidenceBadge(doc.confidence) || '—';
       lines.push(
-        `| \u{1F7E1} WARNING | \`${doc.filePath}\` | ${doc.lineRange[0]} | ${doc.issueTitle} |`,
+        `| \u{1F7E1} WARNING | \`${doc.filePath}\` | ${doc.lineRange[0]} | ${doc.issueTitle} | ${confCell} |`,
       );
     }
     lines.push('');

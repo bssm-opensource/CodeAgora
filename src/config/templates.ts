@@ -99,6 +99,11 @@ const FULL_TEMPLATE_DATA = {
     maxRetries: 2,
     forfeitThreshold: 0.7,
   },
+  autoApprove: {
+    enabled: false,
+    maxLines: 5,
+    allowedFilePatterns: ['*.md', '*.txt', 'docs/**'],
+  },
 };
 
 /** Minimal config — one reviewer, one supporter, sensible defaults. */

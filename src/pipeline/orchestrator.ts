@@ -24,6 +24,10 @@ import type { ProgressEmitter } from './progress.js';
 import type { ReviewerInput } from '../l1/reviewer.js';
 import { chunkDiff } from './chunker.js';
 import { pLimit } from '../utils/concurrency.js';
+import { analyzeTrivialDiff } from './auto-approve.js';
+import { computeL1Confidence, adjustConfidenceFromDiscussion } from './confidence.js';
+import { loadLearnedPatterns } from '../learning/store.js';
+import { applyLearnedPatterns } from '../learning/filter.js';
 import fs from 'fs/promises';
 
 // ============================================================================
@@ -106,6 +110,31 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
     // Read diff
     const diffContent = await fs.readFile(input.diffPath, 'utf-8');
     progress?.stageComplete('init', 'Config loaded');
+
+    // === AUTO-APPROVE: Skip LLM pipeline for trivial diffs ===
+    if (config.autoApprove?.enabled) {
+      const trivialResult = analyzeTrivialDiff(diffContent, config.autoApprove);
+      if (trivialResult.isTrivial) {
+        const reason = trivialResult.reason ?? 'trivial-diff';
+        await session.setStatus('completed');
+        return {
+          sessionId,
+          date,
+          status: 'success',
+          summary: {
+            decision: 'ACCEPT',
+            reasoning: `Auto-approved: ${reason}`,
+            totalReviewers: 0,
+            forfeitedReviewers: 0,
+            severityCounts: {},
+            topIssues: [],
+            totalDiscussions: 0,
+            resolved: 0,
+            escalated: 0,
+          },
+        };
+      }
+    }
 
     // === DIFF CHUNKING ===
     const chunks = chunkDiff(diffContent, { maxTokens: config.chunking?.maxTokens ?? 8000 });
@@ -215,9 +244,30 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
     }
 
     // === L2 MODERATOR: Discussion Registration ===
-    const allEvidenceDocs: EvidenceDocument[] = allReviewResults.flatMap(
+    let allEvidenceDocs: EvidenceDocument[] = allReviewResults.flatMap(
       (r) => r.evidenceDocs
     );
+
+    // === LEARNING: Apply dismissed patterns ===
+    const learnedPatterns = await loadLearnedPatterns(process.cwd());
+    if (learnedPatterns && learnedPatterns.dismissedPatterns.length > 0) {
+      const { filtered, suppressed } = applyLearnedPatterns(
+        allEvidenceDocs,
+        learnedPatterns.dismissedPatterns,
+      );
+      if (suppressed.length > 0) {
+        console.log(`[Learning] Suppressed ${suppressed.length} previously dismissed issue(s)`);
+      }
+      allEvidenceDocs = filtered;
+    }
+
+    // === CONFIDENCE: Compute L1 confidence for non-rule docs ===
+    const totalReviewers = allReviewerInputs.length;
+    for (const doc of allEvidenceDocs) {
+      if (doc.source !== 'rule') {
+        doc.confidence = computeL1Confidence(doc, allEvidenceDocs, totalReviewers);
+      }
+    }
 
     const thresholdResult = applyThreshold(allEvidenceDocs, config.discussion);
     const logger = createLogger(date, sessionId, 'pipeline');
@@ -282,6 +332,16 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       // Add unconfirmed and suggestions to report
       moderatorReport.unconfirmedIssues = thresholdResult.unconfirmed;
       moderatorReport.suggestions = thresholdResult.suggestions;
+
+      // === CONFIDENCE: Adjust confidence based on L2 discussion verdicts ===
+      for (const verdict of moderatorReport.discussions) {
+        const matchingDocs = allEvidenceDocs.filter(d =>
+          d.filePath === verdict.filePath && Math.abs(d.lineRange[0] - verdict.lineRange[0]) <= 5
+        );
+        for (const doc of matchingDocs) {
+          doc.confidence = adjustConfidenceFromDiscussion(doc.confidence ?? 50, verdict);
+        }
+      }
     }
 
     // Write moderator report

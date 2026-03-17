@@ -29,6 +29,7 @@ import { buildDiffPositionIndex } from '../github/diff-parser.js';
 import { mapToGitHubReview } from '../github/mapper.js';
 import { postReview, setCommitStatus } from '../github/poster.js';
 import { loadCredentials } from '../config/credentials.js';
+import { registerLearnCommand } from './commands/learn.js';
 
 // Load API keys from ~/.config/codeagora/credentials
 loadCredentials();
@@ -555,6 +556,8 @@ program
     const { startTui } = await import('../tui/index.js');
     startTui();
   });
+
+registerLearnCommand(program);
 
 // Only parse argv when this file is the direct entry point (not imported by tests).
 // In ESM the canonical check is comparing import.meta.url to the process entry module.
