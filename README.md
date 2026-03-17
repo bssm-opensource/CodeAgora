@@ -39,21 +39,13 @@ git diff | agora review
 
 Get running in under 2 minutes.
 
-**Prerequisites**: Node.js 18+, pnpm
+**Prerequisites**: Node.js 18+
 
 ```bash
-# 1. Clone and install
-git clone <repo-url> codeagora
-cd codeagora
-pnpm install
+# 1. Install
+npm install -g codeagora
 
-# 2. Build
-pnpm build
-
-# 3. Link the CLI globally (or use npx)
-npm link
-
-# 4. Initialize in your project
+# 2. Initialize in your project
 cd /your/project
 agora init
 
@@ -69,6 +61,13 @@ That's it. `agora init` writes a `.ca/config.json` with sensible defaults using 
 ---
 
 ## Installation
+
+```bash
+npm install -g codeagora
+
+# or run without installing
+npx codeagora
+```
 
 ### From source
 

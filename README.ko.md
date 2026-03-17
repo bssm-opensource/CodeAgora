@@ -39,21 +39,13 @@ git diff | agora review
 
 2분이면 됩니다.
 
-**사전 요구사항**: Node.js 18+, pnpm
+**사전 요구사항**: Node.js 18+
 
 ```bash
-# 1. 클론 및 설치
-git clone <repo-url> codeagora
-cd codeagora
-pnpm install
+# 1. 설치
+npm install -g codeagora
 
-# 2. 빌드
-pnpm build
-
-# 3. CLI를 전역으로 링크 (또는 npx 사용)
-npm link
-
-# 4. 프로젝트에서 초기화
+# 2. 프로젝트에서 초기화
 cd /your/project
 agora init
 
@@ -69,6 +61,13 @@ git diff HEAD~1 | agora review
 ---
 
 ## 설치
+
+```bash
+npm install -g codeagora
+
+# 또는 설치 없이 바로 실행
+npx codeagora
+```
 
 ### 소스에서 설치
 
