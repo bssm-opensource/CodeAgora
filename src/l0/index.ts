@@ -124,10 +124,17 @@ export async function resolveReviewers(
     monitor.isAvailable(m.source, m.modelId)
   );
 
+  // D-13: Filter by contextMin constraint if specified
+  // TODO: includeReasoning constraint is defined in config but not yet enforced here
+  const contextMin = routerConfig.constraints?.contextMin;
+  const candidateModels = contextMin
+    ? healthyModels.filter((m) => parseContextK(m.context) >= parseContextK(contextMin))
+    : healthyModels;
+
   // Select models for auto slots
   const selection = selectModels({
     count: autoSlots.length,
-    availableModels: healthyModels,
+    availableModels: candidateModels,
     banditState,
     constraints: routerConfig.constraints,
     explorationRate: routerConfig.explorationRate,
@@ -192,6 +199,19 @@ function buildInputs(
       prSummary: group.prSummary,
     };
   });
+}
+
+/**
+ * Parse a context size string like "32k", "128k", "1m" into a token count.
+ */
+function parseContextK(size: string): number {
+  const lower = size.toLowerCase().trim();
+  const m = /^(\d+(?:\.\d+)?)\s*([km]?)$/.exec(lower);
+  if (!m) return 0;
+  const n = parseFloat(m[1]!);
+  if (m[2] === 'k') return Math.round(n * 1_000);
+  if (m[2] === 'm') return Math.round(n * 1_000_000);
+  return Math.round(n);
 }
 
 // Re-export for convenience

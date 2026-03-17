@@ -1,6 +1,9 @@
 /**
  * Pipeline Telemetry
  * Collects per-reviewer token usage and latency data during pipeline execution.
+ *
+ * @experimental Not yet wired into the orchestrator. Preserved for future
+ * integration once per-call instrumentation is added to L1/L2/L3 execution paths.
  */
 
 export interface TokenUsage {

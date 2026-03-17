@@ -7,5 +7,11 @@ export default defineConfig({
     poolMatchGlobs: [
       ['**/e2e-*.test.ts', 'forks'],
     ],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/tests/**', 'src/tui/**'],
+    },
   },
 });

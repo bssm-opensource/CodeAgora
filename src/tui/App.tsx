@@ -31,6 +31,10 @@ export function App(): React.JSX.Element {
 
   useInput((input) => {
     if (input === 'q') {
+      // Do not handle 'q' when on a detail/modal screen — let the screen handle it
+      if (screen === 'context' || screen === 'sessions' || screen === 'debate') {
+        return;
+      }
       if (screen === 'results') {
         // From results, go home
         navigate('home');
@@ -89,9 +93,14 @@ export function App(): React.JSX.Element {
           <HomeScreen onNavigate={navigate} onQuit={exit} />
         );
       case 'pipeline':
+        if (!reviewParams?.diffPath) {
+          return (
+            <HomeScreen onNavigate={navigate} onQuit={exit} />
+          );
+        }
         return (
           <PipelineScreen
-            diffPath={reviewParams?.diffPath ?? ''}
+            diffPath={reviewParams.diffPath}
             onComplete={handlePipelineComplete}
             onError={() => navigate('home')}
           />

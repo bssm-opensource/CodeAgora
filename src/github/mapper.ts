@@ -33,6 +33,13 @@ const VERDICT_BADGE: Record<string, { emoji: string; label: string }> = {
 // Inline Comment Mapper
 // ============================================================================
 
+export interface MapperOptions {
+  /** When false, inline suggestion code blocks are omitted. Default: true (postSuggestions) */
+  postSuggestions?: boolean;
+  /** When false, discussion details render inline instead of collapsed. Default: true (collapseDiscussions) */
+  collapseDiscussions?: boolean;
+}
+
 /**
  * Map a single EvidenceDocument to an inline comment body string.
  */
@@ -40,6 +47,7 @@ export function mapToInlineCommentBody(
   doc: EvidenceDocument,
   discussion?: DiscussionVerdict,
   reviewerIds?: string[],
+  options?: MapperOptions,
 ): string {
   const badge = SEVERITY_BADGE[doc.severity] ?? { emoji: '\u26AA', label: doc.severity };
   const lines: string[] = [];
@@ -61,7 +69,7 @@ export function mapToInlineCommentBody(
     }
   }
 
-  if (doc.suggestion) {
+  if (doc.suggestion && options?.postSuggestions !== false) {
     lines.push('');
     const codeBlockMatch = /```[\w]*\n([\s\S]*?)```/.exec(doc.suggestion);
     if (codeBlockMatch) {
@@ -75,17 +83,25 @@ export function mapToInlineCommentBody(
   }
 
   if (discussion) {
-    lines.push('');
-    lines.push('<details>');
     const consensusIcon = discussion.consensusReached ? '\u2705' : '\u26A0\uFE0F';
     const consensusText = discussion.consensusReached ? 'consensus' : 'forced decision';
-    lines.push(
-      `<summary>${consensusIcon} Discussion ${discussion.discussionId} \u2014 ${discussion.rounds} round(s), ${consensusText}</summary>`,
-    );
     lines.push('');
-    lines.push(`> ${discussion.reasoning}`);
-    lines.push('');
-    lines.push('</details>');
+    if (options?.collapseDiscussions !== false) {
+      lines.push('<details>');
+      lines.push(
+        `<summary>${consensusIcon} Discussion ${discussion.discussionId} \u2014 ${discussion.rounds} round(s), ${consensusText}</summary>`,
+      );
+      lines.push('');
+      lines.push(`> ${discussion.reasoning}`);
+      lines.push('');
+      lines.push('</details>');
+    } else {
+      lines.push(
+        `${consensusIcon} Discussion ${discussion.discussionId} \u2014 ${discussion.rounds} round(s), ${consensusText}`,
+      );
+      lines.push('');
+      lines.push(`> ${discussion.reasoning}`);
+    }
   }
 
   if (reviewerIds && reviewerIds.length > 0) {
@@ -111,6 +127,7 @@ export function buildReviewComments(
   discussions: DiscussionVerdict[],
   positionIndex: DiffPositionIndex,
   reviewerMap?: Map<string, string[]>,
+  options?: MapperOptions,
 ): GitHubReviewComment[] {
   // Build discussion lookup by filePath:startLine for exact matching
   const discussionByLocation = new Map<string, DiscussionVerdict>();
@@ -130,7 +147,7 @@ export function buildReviewComments(
 
     const position = resolveLineRange(positionIndex, doc.filePath, doc.lineRange);
     const reviewerIds = reviewerMap?.get(`${doc.filePath}:${doc.lineRange[0]}`);
-    let body = mapToInlineCommentBody(doc, matchingDiscussion, reviewerIds);
+    let body = mapToInlineCommentBody(doc, matchingDiscussion, reviewerIds, options);
 
     if (position !== null) {
       comments.push({
@@ -301,8 +318,9 @@ export function mapToGitHubReview(params: {
   sessionDate: string;
   reviewerMap?: Map<string, string[]>;
   questionsForHuman?: string[];
+  options?: MapperOptions;
 }): GitHubReview {
-  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate, reviewerMap, questionsForHuman } =
+  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate, reviewerMap, questionsForHuman, options } =
     params;
 
   // Filter out dismissed docs — exact match by file + line
@@ -315,7 +333,7 @@ export function mapToGitHubReview(params: {
     (doc) => !dismissedLocations.has(`${doc.filePath}:${doc.lineRange[0]}`),
   );
 
-  const comments = buildReviewComments(activeDocs, discussions, positionIndex, reviewerMap);
+  const comments = buildReviewComments(activeDocs, discussions, positionIndex, reviewerMap, options);
   const body = buildSummaryBody({ summary, sessionId, sessionDate, evidenceDocs: activeDocs, discussions, questionsForHuman });
 
   // Determine event: REQUEST_CHANGES if any CRITICAL/HARSHLY_CRITICAL remains

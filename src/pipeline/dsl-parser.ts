@@ -1,6 +1,9 @@
 /**
  * Pipeline DSL Parser
  * YAML ↔ PipelineDefinition conversion with validation
+ *
+ * @experimental DSL is not yet wired into the orchestrator. The pipeline
+ * currently uses a hardcoded L1 → L2 → L3 flow. DSL integration is planned.
  */
 
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
