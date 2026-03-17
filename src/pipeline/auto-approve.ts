@@ -135,7 +135,6 @@ export function analyzeTrivialDiff(
   const commentLines = nonDocsLines.filter((l) => COMMENT_RE.test(l)).length;
   const blankLines = nonDocsLines.filter((l) => BLANK_RE.test(l)).length;
   const importLines = nonDocsLines.filter((l) => IMPORT_RE.test(l)).length;
-  const codeLines = totalLines - commentLines - blankLines;
 
   // isTrivial when no non-trivial content exists
   const nonTrivialLines = totalLines - commentLines - blankLines - importLines;

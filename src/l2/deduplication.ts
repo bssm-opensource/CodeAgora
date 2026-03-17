@@ -5,25 +5,67 @@
 
 import type { Discussion } from '../types/core.js';
 
+// ============================================================================
+// Union-Find (Disjoint Set) for transitive duplicate grouping (L-16)
+// ============================================================================
+
+class UnionFind {
+  parent: number[];
+
+  constructor(n: number) {
+    this.parent = Array.from({ length: n }, (_, i) => i);
+  }
+
+  find(x: number): number {
+    if (this.parent[x] !== x) {
+      this.parent[x] = this.find(this.parent[x]); // path compression
+    }
+    return this.parent[x];
+  }
+
+  union(a: number, b: number): void {
+    const ra = this.find(a);
+    const rb = this.find(b);
+    if (ra !== rb) {
+      this.parent[rb] = ra; // merge b's root into a's root
+    }
+  }
+}
+
 /**
- * Find duplicate discussions based on file location and issue similarity
+ * Find duplicate discussions based on file location and issue similarity.
+ * Uses Union-Find so A<->B and B<->C transitively groups A, B, C together (L-16).
  */
 export function findDuplicates(discussions: Discussion[]): Map<string, string[]> {
-  const duplicates = new Map<string, string[]>();
+  const n = discussions.length;
+  const uf = new UnionFind(n);
 
-  for (let i = 0; i < discussions.length; i++) {
-    for (let j = i + 1; j < discussions.length; j++) {
-      const d1 = discussions[i];
-      const d2 = discussions[j];
-
-      if (areDuplicates(d1, d2)) {
-        const key = d1.id; // Keep first as primary
-        if (!duplicates.has(key)) {
-          duplicates.set(key, []);
-        }
-        duplicates.get(key)!.push(d2.id);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (areDuplicates(discussions[i], discussions[j])) {
+        uf.union(i, j);
       }
     }
+  }
+
+  // Group by root representative
+  const groups = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    const root = uf.find(i);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root)!.push(i);
+  }
+
+  // Build result: root id -> list of duplicate ids (excluding root itself)
+  const duplicates = new Map<string, string[]>();
+  for (const members of groups.values()) {
+    if (members.length < 2) continue;
+    const primaryIdx = members[0]; // lowest index = primary
+    const key = discussions[primaryIdx].id;
+    duplicates.set(
+      key,
+      members.slice(1).map((idx) => discussions[idx].id)
+    );
   }
 
   return duplicates;
@@ -47,14 +89,26 @@ function areDuplicates(d1: Discussion, d2: Discussion): boolean {
     return false;
   }
 
-  // Check issue title similarity (Jaccard similarity)
+  // Check issue title similarity with adaptive threshold (L-17)
   const similarity = calculateTitleSimilarity(d1.issueTitle, d2.issueTitle);
-  return similarity > 0.6; // 60% similarity threshold
+  return similarity > similarityThreshold(d1.issueTitle, d2.issueTitle);
+}
+
+/**
+ * Return effective Jaccard threshold.
+ * Single-word titles (< 2 tokens on either side) use 0.8 to reduce false positives (L-17).
+ * Titles with 2+ tokens use the standard 0.6 threshold.
+ */
+function similarityThreshold(title1: string, title2: string): number {
+  const tokensA = title1.toLowerCase().split(/\s+/).filter(Boolean);
+  const tokensB = title2.toLowerCase().split(/\s+/).filter(Boolean);
+  const minTokens = Math.min(tokensA.length, tokensB.length);
+  return minTokens < 2 ? 0.8 : 0.6;
 }
 
 function calculateTitleSimilarity(title1: string, title2: string): number {
-  const words1 = new Set(title1.toLowerCase().split(/\s+/));
-  const words2 = new Set(title2.toLowerCase().split(/\s+/));
+  const words1 = new Set(title1.toLowerCase().split(/\s+/).filter(Boolean));
+  const words2 = new Set(title2.toLowerCase().split(/\s+/).filter(Boolean));
 
   const intersection = new Set([...words1].filter((w) => words2.has(w)));
   const union = new Set([...words1, ...words2]);

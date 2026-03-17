@@ -8,6 +8,8 @@ import type { ReviewOutput } from '../types/core.js';
 import { parseEvidenceResponse } from './parser.js';
 import { executeBackend } from './backend.js';
 import { extractFileListFromDiff } from '../utils/diff.js';
+import { CircuitBreaker, CircuitOpenError } from './circuit-breaker.js';
+import { HealthMonitor } from '../l0/health-monitor.js';
 
 // ============================================================================
 // Reviewer Execution
@@ -113,21 +115,41 @@ export async function executeReviewer(
   };
 }
 
+// ============================================================================
+// Module-level circuit breaker + health monitor (D-2, D-4)
+// Circuit breaker and RPD tracking only apply to API backends with an explicit
+// provider field. CLI backends (codex, gemini, claude, etc.) have no provider
+// and are intentionally excluded from tracking to prevent cross-test state bleed.
+// ============================================================================
+
+const _defaultCircuitBreaker = new CircuitBreaker();
+const _defaultHealthMonitor = new HealthMonitor();
+
+export interface ExecuteReviewersOptions {
+  circuitBreaker?: CircuitBreaker;
+  healthMonitor?: HealthMonitor;
+}
+
 /**
- * Execute multiple reviewers with concurrency limit and graceful degradation
+ * Execute multiple reviewers with concurrency limit and graceful degradation.
+ * Applies circuit breaker per provider/model and records RPD budget usage
+ * for API backends (those with an explicit provider field).
  */
 export async function executeReviewers(
   inputs: ReviewerInput[],
   maxRetries: number = 2,
-  concurrency: number = 5
+  concurrency: number = 5,
+  options: ExecuteReviewersOptions = {}
 ): Promise<ReviewOutput[]> {
+  const cb = options.circuitBreaker ?? _defaultCircuitBreaker;
+  const hm = options.healthMonitor ?? _defaultHealthMonitor;
   const results: ReviewOutput[] = [];
 
   // Process in batches to avoid 429 rate limit storms
   for (let i = 0; i < inputs.length; i += concurrency) {
     const batch = inputs.slice(i, i + concurrency);
     const batchResults = await Promise.allSettled(
-      batch.map((input) => executeReviewer(input, maxRetries))
+      batch.map((input) => executeReviewerWithGuards(input, maxRetries, cb, hm))
     );
 
     for (let j = 0; j < batchResults.length; j++) {
@@ -151,6 +173,131 @@ export async function executeReviewers(
   }
 
   return results;
+}
+
+/**
+ * Execute a single reviewer with circuit breaker + health monitor guards.
+ * Guards are only active when the reviewer config has an explicit provider
+ * (i.e. API backends). CLI backends skip guarding entirely.
+ */
+async function executeReviewerWithGuards(
+  input: ReviewerInput,
+  retries: number,
+  cb: CircuitBreaker,
+  hm: HealthMonitor
+): Promise<ReviewOutput> {
+  const { config, groupName, diffContent, prSummary } = input;
+  // Only guard API backends — those have an explicit provider field.
+  const provider = config.provider;
+  const useGuards = !!provider;
+
+  // Check circuit breaker before attempting (API backends only)
+  if (useGuards && cb.isOpen(provider!, config.model)) {
+    return {
+      reviewerId: config.id,
+      model: config.model,
+      group: groupName,
+      evidenceDocs: [],
+      rawResponse: '',
+      status: 'forfeit',
+      error: `Circuit open for ${provider}/${config.model}`,
+    };
+  }
+
+  let lastError: Error | undefined;
+  const diffFilePaths = extractFileListFromDiff(diffContent);
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.timeout * 1000);
+
+    try {
+      if (useGuards) hm.recordRequest(provider!);
+
+      const response = await executeBackend({
+        backend: config.backend,
+        model: config.model,
+        provider: config.provider,
+        prompt: buildReviewerPrompt(diffContent, prSummary),
+        timeout: config.timeout,
+        signal: controller.signal,
+      });
+
+      if (useGuards) cb.recordSuccess(provider!, config.model);
+      const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
+
+      return {
+        reviewerId: config.id,
+        model: config.model,
+        group: groupName,
+        evidenceDocs,
+        rawResponse: response,
+        status: 'success',
+      };
+    } catch (error) {
+      if (error instanceof CircuitOpenError) {
+        return {
+          reviewerId: config.id,
+          model: config.model,
+          group: groupName,
+          evidenceDocs: [],
+          rawResponse: '',
+          status: 'forfeit',
+          error: error.message,
+        };
+      }
+      if (useGuards) cb.recordFailure(provider!, config.model);
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  // All retries failed — try fallback if configured
+  if (lastError && config.fallback) {
+    const fallbackProvider = config.fallback.provider;
+    const useFallbackGuards = !!fallbackProvider;
+    try {
+      if (useFallbackGuards) hm.recordRequest(fallbackProvider!);
+
+      const response = await executeBackend({
+        backend: config.fallback.backend,
+        model: config.fallback.model,
+        provider: config.fallback.provider,
+        prompt: buildReviewerPrompt(diffContent, prSummary),
+        timeout: config.timeout,
+      });
+
+      if (useFallbackGuards) cb.recordSuccess(fallbackProvider!, config.fallback.model);
+      const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
+
+      return {
+        reviewerId: config.id,
+        model: config.fallback.model,
+        group: groupName,
+        evidenceDocs,
+        rawResponse: response,
+        status: 'success',
+      };
+    } catch {
+      if (useFallbackGuards) cb.recordFailure(fallbackProvider!, config.fallback.model);
+      // fallback also failed — forfeit
+    }
+  }
+
+  return {
+    reviewerId: config.id,
+    model: config.model,
+    group: groupName,
+    evidenceDocs: [],
+    rawResponse: '',
+    status: 'forfeit',
+    error: lastError?.message || 'Unknown error',
+  };
 }
 
 /**
