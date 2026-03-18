@@ -26,6 +26,7 @@ function makeVerdict(overrides: Partial<DiscussionVerdict> = {}): DiscussionVerd
 function makeReport(overrides: Partial<ModeratorReport> = {}): ModeratorReport {
   return {
     discussions: [],
+    roundsPerDiscussion: {},
     unconfirmedIssues: [],
     suggestions: [],
     summary: { totalDiscussions: 0, resolved: 0, escalated: 0 },

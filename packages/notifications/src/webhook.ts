@@ -23,6 +23,27 @@ export interface NotificationPayload {
   totalDiscussions: number;
   resolved: number;
   escalated: number;
+  /** Per-discussion verdict details (1.5.1) */
+  discussionDetails?: Array<{
+    id: string;
+    rounds: number;
+    consensusReached: boolean;
+    finalSeverity: string;
+  }>;
+  /** Performance summary (1.5.1) */
+  performance?: {
+    totalCost: string;
+    avgLatencyMs: number;
+    reviewerCount: number;
+  };
+  /** Learned pattern suppression count (1.5.1) */
+  suppressedCount?: number;
+  /** Reviewer diversity metrics (4.7) */
+  reviewerDiversity?: {
+    familyCount: number;
+    reasoningModelCount: number;
+    totalReviewers: number;
+  };
 }
 
 // ============================================================================

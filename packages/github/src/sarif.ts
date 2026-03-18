@@ -94,11 +94,19 @@ const SARIF_RULES: SarifRule[] = [
 /**
  * Build a SARIF 2.1.0 report from evidence documents.
  */
+export interface SarifDiscussionMeta {
+  discussionId: string;
+  rounds: number;
+  consensusReached: boolean;
+  finalSeverity: string;
+}
+
 export function buildSarifReport(
   evidenceDocs: EvidenceDocument[],
   sessionId: string,
   sessionDate: string,
   version: string = '1.0.0',
+  discussionMeta?: Map<string, SarifDiscussionMeta>,
 ): SarifReport {
   const results: SarifResult[] = evidenceDocs.map((doc) => {
     const mapping = SEVERITY_TO_SARIF[doc.severity] ?? { level: 'note' as const, ruleId: 'CA004' };
@@ -134,6 +142,18 @@ export function buildSarifReport(
 
     if (doc.suggestion) {
       result.fixes = [{ description: { text: doc.suggestion } }];
+    }
+
+    // Attach discussion metadata (1.7)
+    const locKey = `${doc.filePath}:${doc.lineRange[0]}`;
+    const meta = discussionMeta?.get(locKey);
+    if (meta) {
+      result.properties = {
+        discussionId: meta.discussionId,
+        rounds: meta.rounds,
+        consensusReached: meta.consensusReached,
+        finalSeverity: meta.finalSeverity,
+      };
     }
 
     return result;

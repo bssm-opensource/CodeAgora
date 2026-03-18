@@ -70,6 +70,8 @@ export interface PipelineResult {
   summary?: PipelineSummary;
   evidenceDocs?: EvidenceDocument[];
   discussions?: DiscussionVerdict[];
+  /** Per-discussion round data (supporter stances, responses, prompts) */
+  roundsPerDiscussion?: Record<string, import('../types/core.js').DiscussionRound[]>;
   /** Maps "filePath:startLine" → reviewer IDs that flagged the issue */
   reviewerMap?: Record<string, string[]>;
 }
@@ -283,6 +285,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       logger.info('Discussion skipped (--no-discussion)');
       moderatorReport = {
         discussions: [],
+        roundsPerDiscussion: {},
         unconfirmedIssues: thresholdResult.unconfirmed,
         suggestions: thresholdResult.suggestions,
         summary: { totalDiscussions: 0, resolved: 0, escalated: 0 },
@@ -448,6 +451,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       },
       evidenceDocs: allEvidenceDocs,
       discussions: moderatorReport.discussions,
+      roundsPerDiscussion: moderatorReport.roundsPerDiscussion,
       reviewerMap: buildReviewerMap(allReviewResults),
     };
   } catch (error) {

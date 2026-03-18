@@ -138,25 +138,33 @@ export async function runModerator(input: ModeratorInput): Promise<ModeratorRepo
     discussions.map((d) => runDiscussion(d, config, supporterPoolConfig, settings, date, sessionId, language))
   );
 
-  const verdicts: DiscussionVerdict[] = results.map((result, i) => {
+  const verdicts: DiscussionVerdict[] = [];
+  const roundsPerDiscussion: Record<string, DiscussionRound[]> = {};
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (result.status === 'fulfilled') {
-      return result.value;
+      verdicts.push(result.value.verdict);
+      roundsPerDiscussion[result.value.verdict.discussionId] = result.value.rounds;
+    } else {
+      const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      const errorVerdict: DiscussionVerdict = {
+        discussionId: discussions[i].id,
+        filePath: discussions[i].filePath,
+        lineRange: discussions[i].lineRange,
+        finalSeverity: 'DISMISSED' as const,
+        reasoning: `Discussion failed: ${errorMessage}`,
+        consensusReached: false,
+        rounds: 0,
+      };
+      verdicts.push(errorVerdict);
+      roundsPerDiscussion[discussions[i].id] = [];
     }
-    // Rejected: produce an error verdict so the pipeline continues
-    const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
-    return {
-      discussionId: discussions[i].id,
-      filePath: discussions[i].filePath,
-      lineRange: discussions[i].lineRange,
-      finalSeverity: 'DISMISSED' as const,
-      reasoning: `Discussion failed: ${errorMessage}`,
-      consensusReached: false,
-      rounds: 0,
-    };
-  });
+  }
 
   return {
     discussions: verdicts,
+    roundsPerDiscussion,
     unconfirmedIssues: [], // Populated by caller
     suggestions: [], // Populated by caller
     summary: {
@@ -171,6 +179,11 @@ export async function runModerator(input: ModeratorInput): Promise<ModeratorRepo
 // Discussion Execution
 // ============================================================================
 
+interface DiscussionResult {
+  verdict: DiscussionVerdict;
+  rounds: DiscussionRound[];
+}
+
 async function runDiscussion(
   discussion: Discussion,
   moderatorConfig: ModeratorConfig,
@@ -179,7 +192,7 @@ async function runDiscussion(
   date: string,
   sessionId: string,
   language?: 'en' | 'ko'
-): Promise<DiscussionVerdict> {
+): Promise<DiscussionResult> {
   const rounds: DiscussionRound[] = [];
 
   // HARSHLY_CRITICAL: Skip discussion, escalate immediately
@@ -197,7 +210,7 @@ async function runDiscussion(
     // Write verdict file
     await writeDiscussionVerdict(date, sessionId, verdict);
 
-    return verdict;
+    return { verdict, rounds };
   }
 
   // L-15: If no supporters are enabled and devil's advocate is off, skip discussion
@@ -213,7 +226,7 @@ async function runDiscussion(
       rounds: 0,
     };
     await writeDiscussionVerdict(date, sessionId, skippedVerdict);
-    return skippedVerdict;
+    return { verdict: skippedVerdict, rounds };
   }
 
   // Select supporters for this discussion
@@ -291,7 +304,7 @@ async function runDiscussion(
       // Write verdict file
       await writeDiscussionVerdict(date, sessionId, verdict);
 
-      return verdict;
+      return { verdict, rounds };
     }
   }
 
@@ -315,7 +328,7 @@ async function runDiscussion(
   // Write verdict file
   await writeDiscussionVerdict(date, sessionId, verdict);
 
-  return verdict;
+  return { verdict, rounds };
 }
 
 // ============================================================================

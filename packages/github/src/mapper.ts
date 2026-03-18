@@ -185,6 +185,8 @@ export function buildSummaryBody(params: {
   evidenceDocs: EvidenceDocument[];
   discussions: DiscussionVerdict[];
   questionsForHuman?: string[];
+  /** Pre-formatted performance report text (1.4) */
+  performanceText?: string;
 }): string {
   const { summary, sessionId, sessionDate, evidenceDocs, discussions, questionsForHuman } = params;
   const lines: string[] = [];
@@ -261,6 +263,40 @@ export function buildSummaryBody(params: {
     lines.push('');
   }
 
+  // Issue heatmap (1.9)
+  if (evidenceDocs.length > 0) {
+    const fileCounts = new Map<string, number>();
+    for (const doc of evidenceDocs) {
+      fileCounts.set(doc.filePath, (fileCounts.get(doc.filePath) ?? 0) + 1);
+    }
+    const sorted = [...fileCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const maxCount = sorted[0]?.[1] ?? 1;
+
+    lines.push('<details>');
+    lines.push(`<summary>Issue distribution (${fileCounts.size} file(s))</summary>`);
+    lines.push('');
+    lines.push('| File | Issues |');
+    lines.push('|------|--------|');
+    for (const [file, count] of sorted) {
+      const bar = '\u2588'.repeat(Math.max(1, Math.round((count / maxCount) * 12)));
+      lines.push(`| \`${file}\` | ${bar} ${count} |`);
+    }
+    lines.push('');
+    lines.push('</details>');
+    lines.push('');
+  }
+
+  // Performance report (1.4)
+  if (params.performanceText) {
+    lines.push('<details>');
+    lines.push(`<summary>Performance (${summary.totalReviewers} reviewer(s))</summary>`);
+    lines.push('');
+    lines.push(params.performanceText);
+    lines.push('');
+    lines.push('</details>');
+    lines.push('');
+  }
+
   // Discussion log (collapsible)
   if (discussions.length > 0) {
     lines.push('<details>');
@@ -319,8 +355,10 @@ export function mapToGitHubReview(params: {
   reviewerMap?: Map<string, string[]>;
   questionsForHuman?: string[];
   options?: MapperOptions;
+  /** Pre-formatted performance report text (1.4) */
+  performanceText?: string;
 }): GitHubReview {
-  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate, reviewerMap, questionsForHuman, options } =
+  const { summary, evidenceDocs, discussions, positionIndex, headSha, sessionId, sessionDate, reviewerMap, questionsForHuman, options, performanceText } =
     params;
 
   // Filter out dismissed docs — exact match by file + line
@@ -334,7 +372,7 @@ export function mapToGitHubReview(params: {
   );
 
   const comments = buildReviewComments(activeDocs, discussions, positionIndex, reviewerMap, options);
-  const body = buildSummaryBody({ summary, sessionId, sessionDate, evidenceDocs: activeDocs, discussions, questionsForHuman });
+  const body = buildSummaryBody({ summary, sessionId, sessionDate, evidenceDocs: activeDocs, discussions, questionsForHuman, performanceText });
 
   // Determine event: REQUEST_CHANGES if any CRITICAL/HARSHLY_CRITICAL remains
   const hasBlocking = activeDocs.some(

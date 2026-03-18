@@ -108,6 +108,8 @@ export interface DiscussionVerdict {
 
 export interface ModeratorReport {
   discussions: DiscussionVerdict[];
+  /** Per-discussion round data (supporter stances, responses, moderator prompts) */
+  roundsPerDiscussion: Record<string, DiscussionRound[]>;
   unconfirmedIssues: EvidenceDocument[]; // 1 reviewer only
   suggestions: EvidenceDocument[]; // SUGGESTION severity
   summary: {

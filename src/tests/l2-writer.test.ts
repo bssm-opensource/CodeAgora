@@ -106,6 +106,7 @@ function makeReport(overrides: Partial<ModeratorReport> = {}): ModeratorReport {
       makeVerdict({ discussionId: 'd001', consensusReached: true }),
       makeVerdict({ discussionId: 'd002', consensusReached: false, finalSeverity: 'CRITICAL' }),
     ],
+    roundsPerDiscussion: {},
     unconfirmedIssues: [makeEvidenceDocument()],
     suggestions: [makeEvidenceDocument({ severity: 'SUGGESTION' })],
     summary: { totalDiscussions: 2, resolved: 1, escalated: 1 },
