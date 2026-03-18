@@ -250,7 +250,7 @@ export async function writeGitHubWorkflow(
 
   // Read template from src/data/github-actions-template.yml
   // Walk up from the compiled output location to find the data file.
-  const templatePath = path.resolve(_dirname, '../../../../shared/src/data/github-actions-template.yml');
+  const templatePath = path.resolve(_dirname, '../../../../packages/shared/src/data/github-actions-template.yml');
   const templateContent = await fs.readFile(templatePath, 'utf-8');
 
   await fs.mkdir(workflowDir, { recursive: true });

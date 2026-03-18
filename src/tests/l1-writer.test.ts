@@ -9,7 +9,7 @@ import type { ReviewOutput, EvidenceDocument } from '@codeagora/core/types/core.
 // Mocks
 // ============================================================================
 
-vi.mock('@codeagora/shared/utils/fs.js', () => ({
+vi.mock('../../packages/shared/src/utils/fs.js', () => ({
   writeMarkdown: vi.fn().mockResolvedValue(undefined),
   getReviewsDir: vi.fn(),
 }));

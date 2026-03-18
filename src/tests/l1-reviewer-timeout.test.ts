@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@codeagora/core/l1/backend.js', () => ({
+vi.mock('../../packages/core/src/l1/backend.js', () => ({
   executeBackend: vi.fn(),
 }));
 

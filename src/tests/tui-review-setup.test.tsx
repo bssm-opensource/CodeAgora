@@ -15,7 +15,7 @@ vi.mock('fs', () => ({
   },
 }));
 
-vi.mock('@codeagora/core/config/loader.js', () => ({
+vi.mock('../../packages/core/src/config/loader.js', () => ({
   loadConfigFrom: vi.fn(),
   getEnabledReviewers: vi.fn(),
 }));

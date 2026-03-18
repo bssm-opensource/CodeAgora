@@ -11,7 +11,7 @@ import type { DiscussionRound } from '@codeagora/core/types/core.js';
 // Mock executeBackend
 // ---------------------------------------------------------------------------
 
-vi.mock('@codeagora/core/l1/backend.js', () => ({
+vi.mock('../../packages/core/src/l1/backend.js', () => ({
   executeBackend: vi.fn(),
 }));
 

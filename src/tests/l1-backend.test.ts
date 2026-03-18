@@ -32,7 +32,7 @@ vi.mock('child_process', () => ({
   spawn: mockSpawn,
 }));
 
-vi.mock('@codeagora/core/l1/api-backend.js', () => ({
+vi.mock('../../packages/core/src/l1/api-backend.js', () => ({
   executeViaAISDK: vi.fn(),
 }));
 

@@ -10,7 +10,7 @@ import type { Config } from '@codeagora/core/types/config.js';
 const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '');
 
 // Mock provider registry
-vi.mock('@codeagora/core/l1/provider-registry.js', () => ({
+vi.mock('../../packages/core/src/l1/provider-registry.js', () => ({
   getModel: vi.fn(),
   getSupportedProviders: vi.fn(() => []),
   clearProviderCache: vi.fn(),

@@ -10,10 +10,20 @@ export default defineConfig({
       '@codeagora/notifications': path.resolve(__dirname, 'packages/notifications/src'),
       '@codeagora/cli': path.resolve(__dirname, 'packages/cli/src'),
       '@codeagora/tui': path.resolve(__dirname, 'packages/tui/src'),
-      // Deduplicate React/Ink to prevent "multiple copies of React" in monorepo
+      // Pin shared dependencies to root node_modules to prevent duplicates
       'react': path.resolve(__dirname, 'node_modules/react'),
       'ink': path.resolve(__dirname, 'node_modules/ink'),
       'ink-select-input': path.resolve(__dirname, 'node_modules/ink-select-input'),
+      'ai': path.resolve(__dirname, 'node_modules/ai'),
+      '@ai-sdk/groq': path.resolve(__dirname, 'node_modules/@ai-sdk/groq'),
+      '@ai-sdk/google': path.resolve(__dirname, 'node_modules/@ai-sdk/google'),
+      '@ai-sdk/openai': path.resolve(__dirname, 'node_modules/@ai-sdk/openai'),
+      '@ai-sdk/openai-compatible': path.resolve(__dirname, 'node_modules/@ai-sdk/openai-compatible'),
+      '@ai-sdk/anthropic': path.resolve(__dirname, 'node_modules/@ai-sdk/anthropic'),
+      '@openrouter/ai-sdk-provider': path.resolve(__dirname, 'node_modules/@openrouter/ai-sdk-provider'),
+      '@octokit/rest': path.resolve(__dirname, 'node_modules/@octokit/rest'),
+      'zod': path.resolve(__dirname, 'node_modules/zod'),
+      'yaml': path.resolve(__dirname, 'node_modules/yaml'),
     },
   },
   test: {
@@ -22,10 +32,6 @@ export default defineConfig({
     poolMatchGlobs: [
       ['**/e2e-*.test.ts', 'forks'],
     ],
-    deps: {
-      // Inline @codeagora/* so vi.mock intercepts across alias/relative import paths
-      inline: [/@codeagora\//],
-    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

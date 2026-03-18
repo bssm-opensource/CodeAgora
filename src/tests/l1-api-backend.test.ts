@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeViaAISDK } from '@codeagora/core/l1/api-backend.js';
 
 // Mock the provider registry
-vi.mock('@codeagora/core/l1/provider-registry.js', () => ({
+vi.mock('../../packages/core/src/l1/provider-registry.js', () => ({
   getModel: vi.fn(),
 }));
 

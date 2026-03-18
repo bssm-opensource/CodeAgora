@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the fs utilities module before importing the module under test.
-vi.mock('@codeagora/shared/utils/fs.js', () => ({
+vi.mock('../../packages/shared/src/utils/fs.js', () => ({
   writeMarkdown: vi.fn(),
   appendMarkdown: vi.fn(),
   getDiscussionsDir: vi.fn(),

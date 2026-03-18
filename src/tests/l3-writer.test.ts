@@ -10,7 +10,7 @@ import type { HeadVerdict } from '@codeagora/core/types/core.js';
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('@codeagora/shared/utils/fs.js', () => ({
+vi.mock('../../packages/shared/src/utils/fs.js', () => ({
   writeMarkdown: vi.fn(),
   getResultPath: vi.fn(),
 }));

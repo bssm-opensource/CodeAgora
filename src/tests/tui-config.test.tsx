@@ -57,7 +57,7 @@ const mockConfig: Config = {
   },
 };
 
-vi.mock('@codeagora/core/config/loader.js', () => ({
+vi.mock('../../packages/core/src/config/loader.js', () => ({
   loadConfigFrom: vi.fn(),
 }));
 

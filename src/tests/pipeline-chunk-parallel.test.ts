@@ -9,66 +9,66 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 // Mock all dependencies before importing orchestrator
 // ============================================================================
 
-vi.mock('@codeagora/core/config/loader.js', () => ({
+vi.mock('../../packages/core/src/config/loader.js', () => ({
   loadConfig: vi.fn(),
   normalizeConfig: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/session/manager.js', () => ({
+vi.mock('../../packages/core/src/session/manager.js', () => ({
   SessionManager: {
     create: vi.fn(),
   },
 }));
 
-vi.mock('@codeagora/core/l1/reviewer.js', () => ({
+vi.mock('../../packages/core/src/l1/reviewer.js', () => ({
   executeReviewers: vi.fn(),
   checkForfeitThreshold: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l1/writer.js', () => ({
+vi.mock('../../packages/core/src/l1/writer.js', () => ({
   writeAllReviews: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l2/threshold.js', () => ({
+vi.mock('../../packages/core/src/l2/threshold.js', () => ({
   applyThreshold: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l2/moderator.js', () => ({
+vi.mock('../../packages/core/src/l2/moderator.js', () => ({
   runModerator: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l2/writer.js', () => ({
+vi.mock('../../packages/core/src/l2/writer.js', () => ({
   writeModeratorReport: vi.fn(),
   writeSuggestions: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l2/deduplication.js', () => ({
+vi.mock('../../packages/core/src/l2/deduplication.js', () => ({
   deduplicateDiscussions: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l3/grouping.js', () => ({
+vi.mock('../../packages/core/src/l3/grouping.js', () => ({
   groupDiff: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/pipeline/chunker.js', () => ({
+vi.mock('../../packages/core/src/pipeline/chunker.js', () => ({
   chunkDiff: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l3/verdict.js', () => ({
+vi.mock('../../packages/core/src/l3/verdict.js', () => ({
   makeHeadVerdict: vi.fn(),
   scanUnconfirmedQueue: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l3/writer.js', () => ({
+vi.mock('../../packages/core/src/l3/writer.js', () => ({
   writeHeadVerdict: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l0/index.js', () => ({
+vi.mock('../../packages/core/src/l0/index.js', () => ({
   resolveReviewers: vi.fn(),
   getBanditStore: vi.fn(),
 }));
 
-vi.mock('@codeagora/core/l0/quality-tracker.js', () => ({
+vi.mock('../../packages/core/src/l0/quality-tracker.js', () => ({
   QualityTracker: vi.fn().mockImplementation(() => ({
     recordReviewerOutput: vi.fn(),
     recordDiscussionResults: vi.fn(),
@@ -77,11 +77,11 @@ vi.mock('@codeagora/core/l0/quality-tracker.js', () => ({
   })),
 }));
 
-vi.mock('@codeagora/shared/utils/diff.js', () => ({
+vi.mock('../../packages/shared/src/utils/diff.js', () => ({
   extractMultipleSnippets: vi.fn(),
 }));
 
-vi.mock('@codeagora/shared/utils/logger.js', () => ({
+vi.mock('../../packages/shared/src/utils/logger.js', () => ({
   createLogger: vi.fn(),
 }));
 
