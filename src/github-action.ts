@@ -15,6 +15,7 @@ import { mapToGitHubReview } from './github/mapper.js';
 import { postReview, setCommitStatus, handleNeedsHuman } from './github/poster.js';
 import { buildSarifReport, serializeSarif } from './github/sarif.js';
 import { loadConfig } from './config/loader.js';
+import { validateDiffPath } from './utils/path-validation.js';
 
 // ============================================================================
 // Input Parsing
@@ -138,11 +139,18 @@ async function main(): Promise<void> {
     });
   }
 
-  // Generate SARIF output
-  const sarifPath = config?.github?.sarifOutputPath ?? '/tmp/codeagora-results.sarif';
-  const sarifReport = buildSarifReport(evidenceDocs, result.sessionId, result.date);
-  await fs.writeFile(sarifPath, serializeSarif(sarifReport));
-  console.log(`SARIF report written to ${sarifPath}`);
+  // Generate SARIF output — validate path to prevent traversal attacks
+  const rawSarifPath = config?.github?.sarifOutputPath ?? '/tmp/codeagora-results.sarif';
+  const sarifValidation = validateDiffPath(rawSarifPath, {
+    allowedRoots: [process.cwd(), '/tmp'],
+  });
+  if (sarifValidation.success) {
+    const sarifReport = buildSarifReport(evidenceDocs, result.sessionId, result.date);
+    await fs.writeFile(sarifValidation.data, serializeSarif(sarifReport));
+    console.log(`SARIF report written to ${sarifValidation.data}`);
+  } else {
+    console.error(`::warning::SARIF output path rejected: ${sarifValidation.error}`);
+  }
 
   console.log('::endgroup::');
 
