@@ -212,3 +212,32 @@ describe('ModeratorTab', () => {
     unmount();
   });
 });
+
+describe('ReviewersTab edge cases', () => {
+  it('shows empty state when reviewers array is empty', async () => {
+    const { ReviewersTab } = await import('../tui/screens/config/ReviewersTab.js');
+    const emptyConfig = { ...mockConfig, reviewers: [] };
+    const { lastFrame, unmount } = render(
+      <ReviewersTab config={emptyConfig} isActive={true} onConfigChange={() => {}} />
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('No reviewers');
+    unmount();
+  });
+});
+
+describe('ConfigScreen no-config state', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows PresetsTab content when config load fails', async () => {
+    mockLoadConfigFrom.mockRejectedValue(new Error('Config file not found'));
+    const { lastFrame, unmount } = render(<ConfigScreen />);
+    await waitForRender();
+    const frame = lastFrame() ?? '';
+    // When config load fails the ConfigScreen renders PresetsTab inline
+    expect(frame).toContain('Quick Setup');
+    unmount();
+  });
+});

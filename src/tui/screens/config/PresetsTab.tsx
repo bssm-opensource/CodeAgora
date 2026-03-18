@@ -19,6 +19,18 @@ interface PresetDef {
   build: () => Partial<Config>;
 }
 
+// Shared defaults every preset must include
+const PRESET_DEFAULTS = {
+  moderator: { model: 'llama-3.3-70b-versatile', backend: 'api' as const, provider: 'groq' },
+  discussion: {
+    maxRounds: 3,
+    registrationThreshold: { HARSHLY_CRITICAL: 1, CRITICAL: 1, WARNING: 2, SUGGESTION: null },
+    codeSnippetRange: 10,
+  },
+  errorHandling: { maxRetries: 2, forfeitThreshold: 0.7 },
+  head: { backend: 'api' as const, model: 'llama-3.3-70b-versatile', provider: 'groq', enabled: true },
+};
+
 const PRESETS: PresetDef[] = [
   {
     name: 'Quick Setup',
@@ -41,6 +53,7 @@ const PRESETS: PresetDef[] = [
         personaPool: ['.ca/personas/strict.md'],
         personaAssignment: 'random' as const,
       },
+      ...PRESET_DEFAULTS,
     }),
   },
   {
@@ -64,6 +77,7 @@ const PRESETS: PresetDef[] = [
         personaPool: ['.ca/personas/strict.md'],
         personaAssignment: 'random' as const,
       },
+      ...PRESET_DEFAULTS,
     }),
   },
   {
@@ -85,6 +99,7 @@ const PRESETS: PresetDef[] = [
         personaPool: ['.ca/personas/strict.md'],
         personaAssignment: 'random' as const,
       },
+      ...PRESET_DEFAULTS,
     }),
   },
 ];
@@ -94,7 +109,7 @@ const PRESETS: PresetDef[] = [
 // ============================================================================
 
 interface Props {
-  config: Config;
+  config: Config | null;
   isActive: boolean;
   onConfigChange: (newConfig: Config) => void;
 }
@@ -107,7 +122,8 @@ export function PresetsTab({ config, isActive, onConfigChange }: Props): React.J
     const preset = PRESETS[index];
     if (!preset) return;
     const partial = preset.build();
-    onConfigChange({ ...config, ...partial } as Config);
+    const newConfig = config !== null ? ({ ...config, ...partial } as Config) : (partial as Config);
+    onConfigChange(newConfig);
     setConfirmIndex(null);
   }
 

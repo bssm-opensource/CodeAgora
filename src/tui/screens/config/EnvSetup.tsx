@@ -46,6 +46,10 @@ export function EnvSetup({ onDone }: Props): React.JSX.Element {
     checkProviderHealth(provider).then(result => {
       setTestResult(result);
       setStep('result');
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTestResult({ provider, model: '', ok: false, latencyMs: null, error: msg.slice(0, 100) });
+      setStep('result');
     });
   }
 
@@ -58,6 +62,8 @@ export function EnvSetup({ onDone }: Props): React.JSX.Element {
       setBulkProgress(`${done}/${total} providers checked`);
     }).then(results => {
       setBulkResults(results);
+      setStep('bulk-result');
+    }).catch(() => {
       setStep('bulk-result');
     });
   }
@@ -88,9 +94,11 @@ export function EnvSetup({ onDone }: Props): React.JSX.Element {
     if (step === 'key-input') {
       if (key.escape) { setStep('provider'); setKeyInput(''); return; }
       if (key.return) {
-        if (!keyInput.trim()) return;
-        saveCredential(envVarName, keyInput.trim());
-        process.env[envVarName] = keyInput.trim();
+        const trimmed = keyInput.trim().replace(/[\r\n]/g, '');
+        if (!trimmed) return;
+        if (trimmed.length > 500 || !/^[A-Za-z0-9_\-.]+$/.test(trimmed)) return;
+        saveCredential(envVarName, trimmed);
+        process.env[envVarName] = trimmed;
         startTest(selectedProvider);
         return;
       }

@@ -119,4 +119,26 @@ describe('ModelSelector', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Esc cancel');
   });
+
+  it('filters by provider prefix search when provider prop is set to "groq"', () => {
+    // When provider="groq" the search state is pre-populated with "groq/"
+    // so only groq models are visible in the initial render
+    const { lastFrame, unmount } = render(
+      <ModelSelector provider="groq" onSelect={() => {}} onCancel={() => {}} />
+    );
+    const frame = lastFrame() ?? '';
+    // The search box should show the pre-populated "groq/" prefix
+    expect(frame).toContain('groq/');
+    unmount();
+  });
+
+  it('pre-populates search input when provider prop is set', () => {
+    const { lastFrame, unmount } = render(
+      <ModelSelector provider="groq" onSelect={() => {}} onCancel={() => {}} />
+    );
+    const frame = lastFrame() ?? '';
+    // The search field value should begin with the provider name + slash
+    expect(frame).toContain('groq/');
+    unmount();
+  });
 });

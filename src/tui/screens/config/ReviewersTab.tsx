@@ -8,6 +8,7 @@ import { Panel } from '../../components/Panel.js';
 import { ScrollableList } from '../../components/ScrollableList.js';
 import { TextInput } from '../../components/TextInput.js';
 import { colors, icons, statusColor, statusIcon, getTerminalSize } from '../../theme.js';
+import { DetailRow } from '../../components/DetailRow.js';
 import { t } from '../../../i18n/index.js';
 import { isProviderAvailable } from '../../utils/provider-status.js';
 
@@ -119,8 +120,17 @@ export function ReviewersTab({ config, isActive, onConfigChange }: Props): React
     setMode('list');
   }
 
+  function nextReviewerId(current: ReviewerEntry[]): string {
+    const nums = current.map(r => {
+      const m = /^r(\d+)$/.exec(r.id);
+      return m ? parseInt(m[1]!, 10) : 0;
+    });
+    const max = nums.length > 0 ? Math.max(...nums) : 0;
+    return `r${max + 1}`;
+  }
+
   function addReviewer(provider: string, model: string): void {
-    const id = `r${reviewers.length + 1}`;
+    const id = nextReviewerId(reviewers);
     const newReviewer: AgentConfig = {
       id,
       model: model || 'llama-3.3-70b-versatile',
@@ -258,7 +268,7 @@ export function ReviewersTab({ config, isActive, onConfigChange }: Props): React
       if (entry && isStaticReviewer(entry)) {
         const clone: AgentConfig = {
           ...entry,
-          id: `r${reviewers.length + 1}`,
+          id: nextReviewerId(reviewers),
         };
         onConfigChange({ ...config, reviewers: [...reviewers, clone] });
         setSelectedIndex(reviewers.length);
@@ -457,16 +467,3 @@ function renderDetailView(entry: ReviewerEntry): React.JSX.Element {
   );
 }
 
-function DetailRow({ label, value, color, highlight }: {
-  label: string;
-  value: string;
-  color?: string;
-  highlight?: boolean;
-}): React.JSX.Element {
-  return (
-    <Box>
-      <Text dimColor>{label.padEnd(12)}</Text>
-      <Text color={color} bold={highlight}>{value}</Text>
-    </Box>
-  );
-}

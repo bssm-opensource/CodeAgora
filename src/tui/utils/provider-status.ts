@@ -117,10 +117,12 @@ export async function checkAllProviderHealth(
     const batchResults = await Promise.allSettled(
       batch.map(s => checkProviderHealth(s.provider))
     );
-    for (const r of batchResults) {
+    for (let j = 0; j < batchResults.length; j++) {
+      const r = batchResults[j]!;
+      const providerName = batch[j]?.provider ?? 'unknown';
       const result = r.status === 'fulfilled'
         ? r.value
-        : { provider: 'unknown', model: '', ok: false, latencyMs: null, error: 'Check failed' };
+        : { provider: providerName, model: '', ok: false, latencyMs: null, error: 'Check failed' };
       results.push(result);
       done++;
       onProgress?.(result, done, available.length);

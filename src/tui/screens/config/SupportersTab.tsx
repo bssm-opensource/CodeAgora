@@ -5,6 +5,7 @@ import { Panel } from '../../components/Panel.js';
 import { ScrollableList } from '../../components/ScrollableList.js';
 import { TextInput } from '../../components/TextInput.js';
 import { colors, icons, statusIcon, statusColor, getTerminalSize } from '../../theme.js';
+import { DetailRow } from '../../components/DetailRow.js';
 import { t } from '../../../i18n/index.js';
 
 // ============================================================================
@@ -28,8 +29,8 @@ export function SupportersTab({ config, isActive, onConfigChange }: Props): Reac
   const [mode, setMode] = useState<Mode>('list');
   const [pickCountInput, setPickCountInput] = useState('');
 
-  const pool = config.supporters.pool;
-  const da = config.supporters.devilsAdvocate;
+  const pool = config.supporters?.pool ?? [];
+  const da = config.supporters?.devilsAdvocate ?? { id: 'da', model: '', backend: 'api' as const, provider: '', enabled: true, timeout: 120 };
 
   // Combined list: pool entries + DA
   const allItems: Array<{ agent: AgentConfig; isDA: boolean }> = [
@@ -178,20 +179,20 @@ export function SupportersTab({ config, isActive, onConfigChange }: Props): Reac
           </Box>
         ) : selectedItem ? (
           <Box flexDirection="column">
-            <DetailRow label={t('config.detail.id')} value={selectedItem.agent.id} />
-            <DetailRow label={t('config.detail.provider')} value={selectedItem.agent.provider ?? t('config.detail.none')} />
-            <DetailRow label={t('config.detail.model')} value={selectedItem.agent.model} highlight />
-            <DetailRow label={t('config.detail.backend')} value={selectedItem.agent.backend} />
-            <DetailRow label={t('config.detail.timeout')} value={`${selectedItem.agent.timeout ?? 120}s`} />
-            <DetailRow label={t('config.detail.status')} value={(selectedItem.agent.enabled ?? true) ? t('config.detail.enabled') : t('config.detail.disabled')} color={statusColor(selectedItem.agent.enabled ?? true)} />
+            <DetailRow label={t('config.detail.id')} value={selectedItem.agent.id} labelWidth={14} />
+            <DetailRow label={t('config.detail.provider')} value={selectedItem.agent.provider ?? t('config.detail.none')} labelWidth={14} />
+            <DetailRow label={t('config.detail.model')} value={selectedItem.agent.model} highlight labelWidth={14} />
+            <DetailRow label={t('config.detail.backend')} value={selectedItem.agent.backend} labelWidth={14} />
+            <DetailRow label={t('config.detail.timeout')} value={`${selectedItem.agent.timeout ?? 120}s`} labelWidth={14} />
+            <DetailRow label={t('config.detail.status')} value={(selectedItem.agent.enabled ?? true) ? t('config.detail.enabled') : t('config.detail.disabled')} color={statusColor(selectedItem.agent.enabled ?? true)} labelWidth={14} />
             {selectedItem.isDA ? (
-              <DetailRow label="Role" value={t('config.pool.devilsAdvocate')} />
+              <DetailRow label="Role" value={t('config.pool.devilsAdvocate')} labelWidth={14} />
             ) : null}
 
             <Box marginTop={1} flexDirection="column">
               <Text dimColor bold>{icons.separator} Pool Settings</Text>
-              <DetailRow label={t('config.pool.pickCount')} value={String(config.supporters.pickCount)} />
-              <DetailRow label={t('config.pool.pickStrategy')} value={config.supporters.pickStrategy} />
+              <DetailRow label={t('config.pool.pickCount')} value={String(config.supporters.pickCount)} labelWidth={14} />
+              <DetailRow label={t('config.pool.pickStrategy')} value={config.supporters.pickStrategy} labelWidth={14} />
             </Box>
 
             <Box marginTop={1}>
@@ -208,16 +209,3 @@ export function SupportersTab({ config, isActive, onConfigChange }: Props): Reac
   );
 }
 
-function DetailRow({ label, value, color, highlight }: {
-  label: string;
-  value: string;
-  color?: string;
-  highlight?: boolean;
-}): React.JSX.Element {
-  return (
-    <Box>
-      <Text dimColor>{label.padEnd(14)}</Text>
-      <Text color={color} bold={highlight}>{value}</Text>
-    </Box>
-  );
-}

@@ -5,6 +5,7 @@ import { PROVIDER_ENV_VARS } from '../../../providers/env-vars.js';
 import { Panel } from '../../components/Panel.js';
 import { TextInput } from '../../components/TextInput.js';
 import { colors, icons, getTerminalSize } from '../../theme.js';
+import { DetailRow } from '../../components/DetailRow.js';
 import { t } from '../../../i18n/index.js';
 
 const PROVIDERS = Object.keys(PROVIDER_ENV_VARS);
@@ -24,12 +25,12 @@ export function ModeratorTab({ config, isActive, onConfigChange }: Props): React
   const [editBackend, setEditBackend] = useState('');
   const [activeField, setActiveField] = useState(0);
 
-  const mod = config.moderator;
+  const mod = config.moderator ?? { model: '', backend: 'api' as const, provider: '' };
 
   function startEdit(): void {
     setEditProvider(mod.provider ?? '');
-    setEditModel(mod.model);
-    setEditBackend(mod.backend);
+    setEditModel(mod.model ?? '');
+    setEditBackend(mod.backend ?? 'api');
     setActiveField(0);
     setEditMode(true);
   }
@@ -133,15 +134,3 @@ export function ModeratorTab({ config, isActive, onConfigChange }: Props): React
   );
 }
 
-function DetailRow({ label, value, highlight }: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}): React.JSX.Element {
-  return (
-    <Box>
-      <Text dimColor>{label.padEnd(12)}</Text>
-      <Text bold={highlight}>{value}</Text>
-    </Box>
-  );
-}

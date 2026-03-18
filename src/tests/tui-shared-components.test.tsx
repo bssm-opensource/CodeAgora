@@ -94,6 +94,39 @@ describe('ScrollableList', () => {
     expect(frame).toContain('more below');
     unmount();
   });
+
+  it('shows "more above" indicator when scrolled past top', () => {
+    const items = Array.from({ length: 20 }, (_, i) => `Item ${i}`);
+    const { lastFrame, unmount } = render(
+      <ScrollableList
+        items={items}
+        selectedIndex={15}
+        height={5}
+        renderItem={(item) => <Text>{item}</Text>}
+      />
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('more above');
+    unmount();
+  });
+
+  it('clamps selectedIndex to last item when out of bounds', () => {
+    const items = ['Alpha', 'Beta', 'Gamma'];
+    // selectedIndex 10 is well beyond the 3-item list
+    const { lastFrame, unmount } = render(
+      <ScrollableList
+        items={items}
+        selectedIndex={10}
+        renderItem={(item, _i, isSelected) => (
+          <Text>{isSelected ? `[${item}]` : item}</Text>
+        )}
+      />
+    );
+    const frame = lastFrame() ?? '';
+    // Should render without crashing and the last item should be selected
+    expect(frame).toContain('[Gamma]');
+    unmount();
+  });
 });
 
 // ============================================================================

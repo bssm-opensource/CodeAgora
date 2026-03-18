@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import fs from 'fs';
 import path from 'path';
@@ -67,6 +67,7 @@ export function ConfigScreen(): React.JSX.Element {
   const [state, setState] = useState<ConfigState>({ config: null, error: null, loading: true });
   const [toast, setToast] = useState<ToastState>({ message: '', type: 'info', visible: false });
   const [showHelp, setShowHelp] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadConfigFrom(process.cwd()).then(cfg => {
@@ -77,9 +78,20 @@ export function ConfigScreen(): React.JSX.Element {
     });
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
   const showToast = useCallback((message: string, type: ToastState['type'] = 'success') => {
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToast({ message, type, visible: true });
-    setTimeout(() => setToast(s => ({ ...s, visible: false })), 2500);
+    toastTimerRef.current = setTimeout(() => setToast(s => ({ ...s, visible: false })), 2500);
   }, []);
 
   const handleConfigChange = useCallback((newConfig: Config): void => {
@@ -105,7 +117,8 @@ export function ConfigScreen(): React.JSX.Element {
 
   function openInEditor(): void {
     const configPath = path.join(process.cwd(), '.ca', 'config.json');
-    const editor = process.env['EDITOR'] || process.env['VISUAL'] || 'vi';
+    const rawEditor = process.env['EDITOR'] || process.env['VISUAL'] || 'vi';
+    const editor = /^[a-zA-Z0-9/._\-]+$/.test(rawEditor) ? rawEditor : 'vi';
     showToast(t('config.editor.opening'), 'info');
     try {
       spawnSync(editor, [configPath], { stdio: 'inherit' });
@@ -174,7 +187,7 @@ export function ConfigScreen(): React.JSX.Element {
           <Text color={colors.warning}>{t('config.noConfig')}</Text>
           <Box marginTop={1}>
             <PresetsTab
-              config={null as unknown as Config}
+              config={null}
               isActive={true}
               onConfigChange={(newConfig) => {
                 // Preset applied — save to disk and reload
@@ -197,10 +210,6 @@ export function ConfigScreen(): React.JSX.Element {
   }
 
   const { config } = state;
-  const { cols } = getTerminalSize();
-  const usableCols = Math.max(cols - 4, 40); // account for borders/padding
-  const _listWidth = Math.floor(usableCols * 0.38);
-  const _detailWidth = Math.floor(usableCols * 0.62);
 
   return (
     <Box flexDirection="column">
