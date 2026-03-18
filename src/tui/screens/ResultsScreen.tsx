@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { PipelineResult } from '../../pipeline/orchestrator.js';
+import { Panel } from '../components/Panel.js';
+import { ScrollableList } from '../components/ScrollableList.js';
+import { DetailRow } from '../components/DetailRow.js';
+import {
+  colors,
+  icons,
+  severityColor,
+  severityIcon,
+  decisionColor,
+  getTerminalSize,
+  LIST_WIDTH_RATIO,
+  DETAIL_WIDTH_RATIO,
+  MIN_COLS,
+} from '../theme.js';
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface Props {
   result: PipelineResult;
@@ -10,31 +28,55 @@ interface Props {
 
 type ViewMode = 'list' | 'detail';
 
-function severityColor(severity: string): string {
-  switch (severity) {
-    case 'HARSHLY_CRITICAL': return 'red';
-    case 'CRITICAL': return 'red';
-    case 'WARNING': return 'yellow';
-    case 'SUGGESTION': return 'cyan';
-    default: return 'white';
+type Issue = NonNullable<NonNullable<PipelineResult['summary']>['topIssues']>[number];
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function lineRangeStr(issue: Issue): string {
+  if (issue.lineRange[1] !== issue.lineRange[0]) {
+    return `${issue.lineRange[0]}-${issue.lineRange[1]}`;
   }
+  return String(issue.lineRange[0]);
 }
 
-function decisionBgColor(decision: string): { color: string; bold: boolean } {
-  switch (decision) {
-    case 'ACCEPT': return { color: 'green', bold: true };
-    case 'REJECT': return { color: 'red', bold: true };
-    case 'NEEDS_HUMAN': return { color: 'yellow', bold: true };
-    default: return { color: 'white', bold: false };
-  }
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+function SeverityBar({ severityCounts }: { severityCounts: Record<string, number> }): React.JSX.Element {
+  const entries = Object.entries(severityCounts).filter(([, count]) => count > 0);
+  if (entries.length === 0) return <Box />;
+
+  return (
+    <Box marginBottom={1}>
+      {entries.map(([sev, count], idx) => (
+        <Box key={sev} marginRight={idx < entries.length - 1 ? 2 : 0}>
+          <Text color={severityColor(sev)}>{severityIcon(sev)}{count} {sev}</Text>
+        </Box>
+      ))}
+    </Box>
+  );
 }
+
+// ============================================================================
+// Component
+// ============================================================================
 
 export function ResultsScreen({ result, onHome: _onHome, onViewContext }: Props): React.JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const summary = result.summary;
-  const issues = summary?.topIssues ?? [];
+  const issues: Issue[] = summary?.topIssues ?? [];
+
+  const { cols } = getTerminalSize();
+  const totalCols = Math.max(cols, MIN_COLS);
+  const listWidth = Math.floor(totalCols * LIST_WIDTH_RATIO);
+  const detailWidth = Math.floor(totalCols * DETAIL_WIDTH_RATIO);
+  // List viewport height: rows minus header/footer/border
+  const listHeight = Math.max(6, issues.length);
 
   useInput((input, key) => {
     if (viewMode === 'list') {
@@ -48,23 +90,25 @@ export function ResultsScreen({ result, onHome: _onHome, onViewContext }: Props)
         onViewContext();
       }
     } else {
-      if (key.escape) {
-        setViewMode('list');
-      } else if (input === 'q') {
+      if (key.escape || input === 'q') {
         setViewMode('list');
       }
     }
   });
 
+  // ---- No summary ----
   if (!summary) {
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold>Results</Text>
-        <Text color="yellow">No summary available for this result.</Text>
+        <Text color={colors.warning}>No summary available for this result.</Text>
       </Box>
     );
   }
 
+  const decColor = decisionColor(summary.decision);
+
+  // ---- Detail view ----
   if (viewMode === 'detail') {
     const issue = issues[selectedIndex];
     if (!issue) {
@@ -76,99 +120,117 @@ export function ResultsScreen({ result, onHome: _onHome, onViewContext }: Props)
     }
 
     return (
-      <Box flexDirection="column" padding={1}>
-        <Text bold>Issue Details</Text>
-        <Box marginTop={1} flexDirection="column">
-          <Box>
-            <Text bold>Severity: </Text>
+      <Box flexDirection="column">
+        {/* Decision header */}
+        <Box paddingX={1} marginBottom={1}>
+          <Text bold>Decision: </Text>
+          <Text color={decColor} bold>{summary.decision}</Text>
+        </Box>
+
+        <Panel title="Issue Detail" width={totalCols}>
+          <Box marginBottom={1}>
             <Text color={severityColor(issue.severity)} bold>
-              {issue.severity}
+              {severityIcon(issue.severity)} {issue.severity}
             </Text>
           </Box>
-          <Box>
-            <Text bold>File: </Text>
-            <Text>{issue.filePath}</Text>
-            <Text color="gray">:{issue.lineRange[0]}</Text>
-            {issue.lineRange[1] !== issue.lineRange[0] && (
-              <Text color="gray">-{issue.lineRange[1]}</Text>
-            )}
-          </Box>
-          <Box marginTop={1}>
-            <Text bold>Title: </Text>
-            <Text>{issue.title}</Text>
-          </Box>
-        </Box>
-        <Box marginTop={1}>
+          <DetailRow label="File" value={issue.filePath} color={colors.primary} labelWidth={12} />
+          <DetailRow label="Lines" value={lineRangeStr(issue)} color={colors.muted} labelWidth={12} />
+          <DetailRow label="Title" value={issue.title} highlight labelWidth={12} />
+          {'suggestion' in issue && typeof (issue as Record<string, unknown>)['suggestion'] === 'string' ? (
+            <DetailRow
+              label="Suggestion"
+              value={(issue as Record<string, unknown>)['suggestion'] as string}
+              color={colors.secondary}
+              labelWidth={12}
+            />
+          ) : null}
+        </Panel>
+
+        <Box paddingX={1} marginTop={1}>
           <Text dimColor>Escape/q: back to list</Text>
         </Box>
       </Box>
     );
   }
 
-  // List view
-  const { color: decColor, bold: decBold } = decisionBgColor(summary.decision);
-
-  const severityEntries = Object.entries(summary.severityCounts);
-
+  // ---- List view ----
   return (
-    <Box flexDirection="column" padding={1}>
+    <Box flexDirection="column">
       {/* Decision header */}
-      <Box>
+      <Box paddingX={1} marginBottom={0}>
         <Text bold>Decision: </Text>
-        <Text color={decColor} bold={decBold}>
-          {summary.decision}
-        </Text>
-      </Box>
-      <Box marginTop={0}>
-        <Text dimColor>{summary.reasoning}</Text>
+        <Text color={decColor} bold>{summary.decision}</Text>
+        <Text color={colors.muted}>{'  '}{summary.reasoning}</Text>
       </Box>
 
-      {/* Severity summary */}
-      {severityEntries.length > 0 && (
-        <Box marginTop={1}>
-          {severityEntries.map(([sev, count], idx) => (
-            <Box key={sev} marginRight={2}>
-              <Text color={severityColor(sev)}>{sev}</Text>
-              <Text>: {count}</Text>
-              {idx < severityEntries.length - 1 && <Text>  </Text>}
-            </Box>
-          ))}
-        </Box>
-      )}
+      {/* Severity count summary bar */}
+      <Box paddingX={1} marginBottom={1}>
+        <SeverityBar severityCounts={summary.severityCounts} />
+      </Box>
 
-      {/* Issue list */}
-      <Box marginTop={1} flexDirection="column">
-        {issues.length === 0 ? (
-          <Text color="green">No issues found.</Text>
-        ) : (
-          issues.map((issue, idx) => {
-            const isSelected = idx === selectedIndex;
-            return (
-              <Box key={`${issue.filePath}:${issue.lineRange[0]}:${idx}`}>
-                {isSelected ? (
-                  <Text color="cyan" bold>
-                    {'> '}
+      {/* Master-detail layout */}
+      <Box flexDirection="row">
+        {/* Left: issue list */}
+        <Panel title="Issues" width={listWidth}>
+          <ScrollableList
+            items={issues}
+            selectedIndex={selectedIndex}
+            height={listHeight}
+            emptyMessage="No issues found."
+            renderItem={(issue, _idx, isSelected) => (
+              <Box flexDirection="column">
+                <Box>
+                  <Text color={severityColor(issue.severity)}>
+                    {severityIcon(issue.severity)}{' '}
                   </Text>
-                ) : (
-                  <Text>{'  '}</Text>
-                )}
-                <Text color={severityColor(issue.severity)} bold={isSelected}>
-                  [{issue.severity}]
-                </Text>
-                <Text bold={isSelected}>
-                  {' '}
-                  {issue.filePath}:{issue.lineRange[0]} — {issue.title}
-                </Text>
+                  <Text color={isSelected ? colors.primary : undefined} bold={isSelected}>
+                    {issue.filePath}:{issue.lineRange[0]}
+                  </Text>
+                </Box>
+                <Box paddingLeft={2}>
+                  <Text color={colors.muted}>{issue.title}</Text>
+                </Box>
+              </Box>
+            )}
+          />
+        </Panel>
+
+        {/* Right: detail panel */}
+        <Panel title="Detail" width={detailWidth}>
+          {issues.length === 0 ? (
+            <Text color={colors.success}>{icons.check} No issues found.</Text>
+          ) : (() => {
+            const issue = issues[selectedIndex];
+            if (!issue) return <Text dimColor>Select an issue</Text>;
+            return (
+              <Box flexDirection="column">
+                <Box marginBottom={1}>
+                  <Text color={severityColor(issue.severity)} bold>
+                    {severityIcon(issue.severity)} {issue.severity}
+                  </Text>
+                </Box>
+                <DetailRow label="File" value={issue.filePath} color={colors.primary} labelWidth={12} />
+                <DetailRow label="Lines" value={lineRangeStr(issue)} color={colors.muted} labelWidth={12} />
+                <DetailRow label="Title" value={issue.title} highlight labelWidth={12} />
+                {'suggestion' in issue && typeof (issue as Record<string, unknown>)['suggestion'] === 'string' ? (
+                  <DetailRow
+                    label="Suggestion"
+                    value={(issue as Record<string, unknown>)['suggestion'] as string}
+                    color={colors.secondary}
+                    labelWidth={12}
+                  />
+                ) : null}
               </Box>
             );
-          })
-        )}
+          })()}
+        </Panel>
       </Box>
 
       {/* Footer */}
-      <Box marginTop={1}>
+      <Box paddingX={1} marginTop={0}>
         <Text dimColor>
-          {issues.length > 0 ? 'Enter: details | ' : ''}j/k: scroll | {onViewContext ? 'v: view diff context | ' : ''}q: back
+          j/k scroll{'  '}Enter detail{'  '}
+          {onViewContext ? 'v context  ' : ''}q: back
         </Text>
       </Box>
     </Box>

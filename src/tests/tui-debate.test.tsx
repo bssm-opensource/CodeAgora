@@ -190,9 +190,9 @@ describe('DebateScreen', () => {
   it('renders multiple debate panels', () => {
     const { lastFrame } = render(<DebateScreen discussions={mockDiscussions} />);
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('SQL injection risk');
-    expect(frame).toContain('Missing null check');
-    expect(frame).toContain('Use const');
+    expect(frame).toContain('SQL injection');
+    expect(frame).toContain('Missing null');
+    expect(frame).toContain('Use cons');
   });
 
   it('shows title "L2 Discussion Moderator"', () => {

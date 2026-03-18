@@ -50,10 +50,6 @@ function statusColor(status: string): string {
   }
 }
 
-function truncate(s: string, maxLen: number): string {
-  if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen - 1) + '…';
-}
 
 // ============================================================================
 // Component
@@ -112,7 +108,7 @@ export function DebatePanel({
                 <Text color="magenta"> [DA]</Text>
               )}
               <Text color="gray"> {s.id}: </Text>
-              <Text>{truncate(s.reasoning, 60)}</Text>
+              <Text wrap="wrap">{s.reasoning}</Text>
             </Box>
           ))}
         </Box>

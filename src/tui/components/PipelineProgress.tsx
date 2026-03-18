@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import type { ProgressEmitter, PipelineStage, ProgressEvent } from '../../pipeline/progress.js';
+import { Panel } from './Panel.js';
+import { colors, icons } from '../theme.js';
 
 // ============================================================================
 // Types
@@ -11,6 +13,8 @@ type StageStatus = 'pending' | 'running' | 'complete' | 'error';
 interface StageState {
   status: StageStatus;
   message: string;
+  completed?: number;
+  total?: number;
 }
 
 interface Props {
@@ -30,19 +34,34 @@ const PIPELINE_STAGES: Array<{ key: PipelineStage; label: string }> = [
   { key: 'verdict', label: 'Verdict' },
 ];
 
-const STAGE_INDICATORS: Record<StageStatus, string> = {
-  pending: '  ',
-  running: '>>',
-  complete: '✓ ',
-  error: '✗ ',
-};
+// ============================================================================
+// Helpers
+// ============================================================================
 
-const STAGE_COLORS: Record<StageStatus, string> = {
-  pending: 'gray',
-  running: 'yellow',
-  complete: 'green',
-  error: 'red',
-};
+function stageIcon(status: StageStatus): string {
+  switch (status) {
+    case 'complete': return icons.check;     // ✓
+    case 'running':  return '>>';
+    case 'error':    return icons.cross;     // ✗
+    default:         return icons.disabled;  // ○
+  }
+}
+
+function stageColor(status: StageStatus): string {
+  switch (status) {
+    case 'complete': return colors.success;
+    case 'running':  return colors.warning;
+    case 'error':    return colors.error;
+    default:         return colors.muted;
+  }
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m${s}s`;
+}
 
 // ============================================================================
 // Component
@@ -50,10 +69,10 @@ const STAGE_COLORS: Record<StageStatus, string> = {
 
 export function PipelineProgress({ progress }: Props): React.JSX.Element {
   const [stages, setStages] = useState<Record<PipelineStage, StageState>>({
-    init: { status: 'pending', message: '' },
-    review: { status: 'pending', message: '' },
-    discuss: { status: 'pending', message: '' },
-    verdict: { status: 'pending', message: '' },
+    init:     { status: 'pending', message: '' },
+    review:   { status: 'pending', message: '' },
+    discuss:  { status: 'pending', message: '' },
+    verdict:  { status: 'pending', message: '' },
     complete: { status: 'pending', message: '' },
   });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -69,11 +88,26 @@ export function PipelineProgress({ progress }: Props): React.JSX.Element {
         const next = { ...prev };
         const stage = event.stage;
         if (event.event === 'stage-start') {
-          next[stage] = { status: 'running', message: event.message };
+          next[stage] = {
+            status: 'running',
+            message: event.message,
+            completed: event.details?.completed,
+            total: event.details?.total,
+          };
         } else if (event.event === 'stage-update') {
-          next[stage] = { status: 'running', message: event.message };
+          next[stage] = {
+            status: 'running',
+            message: event.message,
+            completed: event.details?.completed,
+            total: event.details?.total,
+          };
         } else if (event.event === 'stage-complete') {
-          next[stage] = { status: 'complete', message: event.message };
+          next[stage] = {
+            status: 'complete',
+            message: event.message,
+            completed: event.details?.completed,
+            total: event.details?.total,
+          };
         } else if (event.event === 'stage-error') {
           next[stage] = { status: 'error', message: event.message };
         } else if (event.event === 'pipeline-complete') {
@@ -110,45 +144,57 @@ export function PipelineProgress({ progress }: Props): React.JSX.Element {
 
   const spinnerChar = SPINNER_FRAMES[spinnerFrame] ?? '|';
 
-  function formatElapsed(seconds: number): string {
-    if (seconds < 60) return `${seconds}s`;
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m${s}s`;
-  }
-
   return (
-    <Box flexDirection="column" padding={1}>
-      <Box marginBottom={1}>
-        <Text bold>Pipeline Progress </Text>
-        <Text color="gray">[{formatElapsed(elapsedSeconds)}]</Text>
+    <Panel title="Pipeline Progress">
+      {/* Header row: elapsed + cancel hint */}
+      <Box justifyContent="space-between" marginBottom={1}>
+        <Text color={colors.muted}>{formatElapsed(elapsedSeconds)} elapsed</Text>
+        <Text color={colors.muted}>Ctrl+c to cancel</Text>
       </Box>
 
+      {/* Stage rows */}
       {PIPELINE_STAGES.map(({ key, label }) => {
         const state = stages[key];
         const status = state?.status ?? 'pending';
         const message = state?.message ?? '';
-        const indicator = STAGE_INDICATORS[status];
-        const color = STAGE_COLORS[status];
-        const spinner = status === 'running' ? spinnerChar + ' ' : '  ';
+        const ico = stageIcon(status);
+        const col = stageColor(status);
+
+        // Build reviewer count string for the review stage when details are available
+        let countHint = '';
+        if (key === 'review' && status === 'running') {
+          const { completed, total } = state ?? {};
+          if (total !== undefined && completed !== undefined) {
+            countHint = `Reviewers: ${completed}/${total} complete`;
+          }
+        }
 
         return (
           <Box key={key} marginBottom={0}>
-            <Text color={color}>
-              {indicator}{spinner}{label}
-            </Text>
-            {message !== '' && (
-              <Text color="gray"> — {message}</Text>
+            <Text color={col}>{ico} </Text>
+            {status === 'running' ? (
+              <Text color={col} bold>{label}</Text>
+            ) : (
+              <Text color={col}>{label}</Text>
             )}
+            {status === 'running' && (
+              <Text color={colors.muted}> {spinnerChar}</Text>
+            )}
+            {countHint !== '' ? (
+              <Text color={colors.muted}>  {countHint}</Text>
+            ) : message !== '' ? (
+              <Text color={colors.muted}> — {message}</Text>
+            ) : null}
           </Box>
         );
       })}
 
+      {/* Done message */}
       {isDone && finalMessage !== '' && (
         <Box marginTop={1}>
-          <Text color="green" bold>Done: {finalMessage}</Text>
+          <Text color={colors.success} bold>Done: {finalMessage}</Text>
         </Box>
       )}
-    </Box>
+    </Panel>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import type { Screen } from '../hooks/useRouter.js';
 import { t } from '../../i18n/index.js';
+import { colors } from '../theme.js';
 
 interface StatusBarProps {
   screen: Screen;
@@ -25,9 +26,9 @@ function getScreenHints(): Record<Screen, string> {
 export function StatusBar({ screen, canGoBack }: StatusBarProps): React.JSX.Element {
   const hint = getScreenHints()[screen] ?? (canGoBack ? t('statusbar.review') : t('statusbar.quit'));
   return (
-    <Box borderStyle="single" paddingX={1} justifyContent="space-between">
-      <Text dimColor>{screen}</Text>
-      <Text dimColor>{hint}</Text>
+    <Box paddingX={1} justifyContent="space-between">
+      <Text color={colors.primary} bold>{screen}</Text>
+      <Text color={colors.muted}>{hint}</Text>
     </Box>
   );
 }
