@@ -72,10 +72,37 @@ export async function ensureDir(dirPath: string): Promise<void> {
   }
 }
 
+/**
+ * Ensure the .ca/ root directory exists with secure permissions (0o700).
+ * Fixes permissions if already exists with wrong mode.
+ * Skipped on Windows.
+ */
+export async function ensureCaRoot(baseDir: string = '.'): Promise<void> {
+  const caDir = path.join(baseDir, CA_ROOT);
+
+  await ensureDir(caDir);
+
+  // Enforce 0o700 permissions on Unix
+  if (process.platform !== 'win32') {
+    try {
+      const stat = await fs.stat(caDir);
+      const mode = stat.mode & 0o777;
+      if (mode !== 0o700) {
+        await fs.chmod(caDir, 0o700);
+      }
+    } catch {
+      // Best effort — directory may have just been created
+    }
+  }
+}
+
 export async function initSessionDirs(
   date: string,
   sessionId: string
 ): Promise<void> {
+  // Ensure .ca/ root has secure permissions first
+  await ensureCaRoot();
+
   const dirs = [
     getSessionDir(date, sessionId),
     getReviewsDir(date, sessionId),
