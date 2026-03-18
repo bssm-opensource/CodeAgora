@@ -72,7 +72,7 @@ export function estimateTokensFromDiff(diffContent: string): number {
  * Run a dry-run analysis: no file I/O, no LLM calls.
  * Returns execution plan and cost estimates based on config + diff size.
  */
-export function dryRun(config: Config, diffContent: string): DryRunResult {
+export async function dryRun(config: Config, diffContent: string): Promise<DryRunResult> {
   const warnings: string[] = [];
 
   // ---- Resolve reviewer entries (handles both array and declarative formats) ----
@@ -149,9 +149,9 @@ export function dryRun(config: Config, diffContent: string): DryRunResult {
     totalTokens: estimatedL3Tokens,
   };
 
-  const l1Cost = estimateCost(l1Usage, reprProvider, reprModel);
-  const l2Cost = estimateCost(l2Usage, modProvider, modModel);
-  const l3Cost = estimateCost(l3Usage, modProvider, modModel);
+  const l1Cost = await estimateCost(l1Usage, reprProvider, reprModel);
+  const l2Cost = await estimateCost(l2Usage, modProvider, modModel);
+  const l3Cost = await estimateCost(l3Usage, modProvider, modModel);
 
   // Total: sum valid costs only (skip -1 unknowns)
   const validCosts = [l1Cost, l2Cost, l3Cost].filter((c) => c.totalCost >= 0);

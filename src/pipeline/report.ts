@@ -29,7 +29,7 @@ export interface PerformanceReport {
   mostExpensive: { reviewerId: string; cost: string } | null;
 }
 
-export function generateReport(telemetry: PipelineTelemetry): PerformanceReport {
+export async function generateReport(telemetry: PipelineTelemetry): Promise<PerformanceReport> {
   const json = telemetry.toJSON() as {
     records: BackendCallRecord[];
     summary: ReturnType<PipelineTelemetry['getSummary']>;
@@ -52,7 +52,7 @@ export function generateReport(telemetry: PipelineTelemetry): PerformanceReport 
 
     // Accumulate cost only when usage is available
     if (rec.usage) {
-      const estimate = estimateCost(rec.usage, rec.provider, rec.model);
+      const estimate = await estimateCost(rec.usage, rec.provider, rec.model);
       const prev = reviewerCostRaw.get(rec.reviewerId) ?? 0;
       if (estimate.totalCost < 0) {
         // N/A — mark as unknown if not already set to a real cost
@@ -98,7 +98,7 @@ export function generateReport(telemetry: PipelineTelemetry): PerformanceReport 
   let hasUnknownCost = false;
   for (const rec of records) {
     if (rec.usage) {
-      const estimate = estimateCost(rec.usage, rec.provider, rec.model);
+      const estimate = await estimateCost(rec.usage, rec.provider, rec.model);
       if (estimate.totalCost < 0) {
         hasUnknownCost = true;
       } else {

@@ -6,7 +6,7 @@
  * Single chunk when total tokens ≤ maxTokens (backward compat).
  */
 
-import fs from 'fs';
+import { readFile } from 'fs/promises';
 import path from 'path';
 
 // ============================================================================
@@ -317,10 +317,10 @@ export function filterIgnoredFiles<T extends { filePath: string }>(
  * Read .reviewignore patterns from CWD.
  * Returns empty array if file doesn't exist.
  */
-export function loadReviewIgnorePatterns(cwd?: string): string[] {
+export async function loadReviewIgnorePatterns(cwd?: string): Promise<string[]> {
   const filePath = path.join(cwd ?? process.cwd(), '.reviewignore');
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = await readFile(filePath, 'utf-8');
     return content
       .split('\n')
       .map((line) => line.trim())
@@ -338,7 +338,7 @@ export function loadReviewIgnorePatterns(cwd?: string): string[] {
  * Split a diff into token-budget-respecting chunks.
  * If total tokens <= maxTokens, returns a single chunk (backward compat).
  */
-export function chunkDiff(diffContent: string, options?: ChunkOptions): DiffChunk[] {
+export async function chunkDiff(diffContent: string, options?: ChunkOptions): Promise<DiffChunk[]> {
   const maxTokens = options?.maxTokens ?? 8000;
 
   if (!diffContent.trim()) return [];
@@ -348,7 +348,7 @@ export function chunkDiff(diffContent: string, options?: ChunkOptions): DiffChun
   if (parsedFiles.length === 0) return [];
 
   // 2. Apply .reviewignore filter
-  const ignorePatterns = loadReviewIgnorePatterns(options?.cwd);
+  const ignorePatterns = await loadReviewIgnorePatterns(options?.cwd);
   const filteredFiles = filterIgnoredFiles(parsedFiles, ignorePatterns);
   if (filteredFiles.length === 0) return [];
 

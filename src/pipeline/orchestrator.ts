@@ -141,7 +141,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
     }
 
     // === DIFF CHUNKING ===
-    const chunks = chunkDiff(diffContent, { maxTokens: config.chunking?.maxTokens ?? 8000 });
+    const chunks = await chunkDiff(diffContent, { maxTokens: config.chunking?.maxTokens ?? 8000 });
 
     // Guard: empty diff produces no chunks
     if (chunks.length === 0) {

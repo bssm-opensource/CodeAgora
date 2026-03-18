@@ -3,7 +3,7 @@
  * Estimates LLM API call costs based on token usage and provider/model pricing.
  */
 
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import type { TokenUsage } from './telemetry.js';
@@ -24,23 +24,32 @@ export interface CostEstimate {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PRICING: Record<string, PricingEntry> = JSON.parse(
-  readFileSync(path.join(__dirname, '../data/pricing.json'), 'utf-8')
-);
+
+// Lazy-loaded pricing cache (avoids blocking readFileSync at module level)
+let _pricingCache: Record<string, PricingEntry> | null = null;
+
+async function getPricing(): Promise<Record<string, PricingEntry>> {
+  if (!_pricingCache) {
+    const raw = await readFile(path.join(__dirname, '../data/pricing.json'), 'utf-8');
+    _pricingCache = JSON.parse(raw);
+  }
+  return _pricingCache!;
+}
 
 // Load pricing table from data/pricing.json
-export function loadPricing(): Record<string, PricingEntry> {
-  return PRICING;
+export async function loadPricing(): Promise<Record<string, PricingEntry>> {
+  return getPricing();
 }
 
 // Estimate cost for a single call
-export function estimateCost(
+export async function estimateCost(
   usage: TokenUsage,
   provider: string,
   model: string
-): CostEstimate {
+): Promise<CostEstimate> {
+  const pricing = await getPricing();
   const key = `${provider}/${model}`;
-  const entry = PRICING[key];
+  const entry = pricing[key];
 
   if (!entry) {
     return {
