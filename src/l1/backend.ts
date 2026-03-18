@@ -5,6 +5,7 @@
 
 import { spawn } from 'child_process';
 import type { Backend } from '../types/config.js';
+import { gracefulKill } from '../utils/process-kill.js';
 
 // ============================================================================
 // Backend Executor
@@ -46,20 +47,35 @@ export async function executeBackend(input: BackendInput): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const child = spawn(cmd.bin, cmd.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: timeoutMs,
+      detached: true, // Required for process-group kill via gracefulKill
     });
 
     let stdout = '';
     let stderr = '';
+    let killed = false;
 
     child.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
     child.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
 
+    // Manual timeout with SIGTERM → SIGKILL escalation (#91)
+    const timer = setTimeout(() => {
+      killed = true;
+      if (child.pid) {
+        gracefulKill(child.pid, 5000).catch(() => {});
+      }
+    }, timeoutMs);
+
     child.on('error', (err) => {
+      clearTimeout(timer);
       reject(new Error(`Backend execution failed: ${err.message}`));
     });
 
     child.on('close', (code) => {
+      clearTimeout(timer);
+      if (killed) {
+        reject(new Error(`Backend timed out after ${timeout}s (SIGKILL escalation)`));
+        return;
+      }
       if (code !== 0 && !stdout) {
         reject(new Error(`Backend error (exit ${code}): ${stderr}`));
         return;
