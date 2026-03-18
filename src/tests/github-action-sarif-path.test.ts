@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateDiffPath } from '../utils/path-validation.js';
+import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
 
 describe('SARIF output path validation', () => {
   const allowedRoots = ['/workspace/project', '/tmp'];

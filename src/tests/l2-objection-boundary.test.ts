@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 // Since runDiscussion is private, we test the boundary condition through
 // the exported parseStance and the objection module directly.
 
-import { handleObjections, type ObjectionResult } from '../l2/objection.js';
+import { handleObjections, type ObjectionResult } from '@codeagora/core/l2/objection.js';
 
 describe('objection round boundary guard', () => {
   describe('handleObjections', () => {

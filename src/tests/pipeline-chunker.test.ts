@@ -12,9 +12,9 @@ import {
   chunkDiffFiles,
   chunkDiff,
   filterIgnoredFiles,
-} from '../pipeline/chunker.js';
-import { mergeReviewOutputsByReviewer } from '../pipeline/orchestrator.js';
-import type { ReviewOutput, EvidenceDocument } from '../types/core.js';
+} from '@codeagora/core/pipeline/chunker.js';
+import { mergeReviewOutputsByReviewer } from '@codeagora/core/pipeline/orchestrator.js';
+import type { ReviewOutput, EvidenceDocument } from '@codeagora/core/types/core.js';
 
 // ============================================================================
 // Helpers

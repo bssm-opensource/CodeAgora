@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { checkFilePermissions } from '../config/credentials.js';
+import { checkFilePermissions } from '@codeagora/core/config/credentials.js';
 import { statSync } from 'fs';
 
 vi.mock('fs', async () => {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { loadConfigFrom } from '../config/loader.js';
+import { loadConfigFrom } from '@codeagora/core/config/loader.js';
 import os from 'os';
 import path from 'path';
 

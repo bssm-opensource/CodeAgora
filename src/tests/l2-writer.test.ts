@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the fs utilities module before importing the module under test.
-vi.mock('../utils/fs.js', () => ({
+vi.mock('@codeagora/shared/utils/fs.js', () => ({
   writeMarkdown: vi.fn(),
   appendMarkdown: vi.fn(),
   getDiscussionsDir: vi.fn(),
@@ -28,7 +28,7 @@ import {
   writeSuggestions,
   writeModeratorReport,
   writeSupportersLog,
-} from '../l2/writer.js';
+} from '@codeagora/core/l2/writer.js';
 
 import {
   writeMarkdown,
@@ -36,7 +36,7 @@ import {
   getSuggestionsPath,
   getReportPath,
   ensureDir,
-} from '../utils/fs.js';
+} from '@codeagora/shared/utils/fs.js';
 
 import { writeFile } from 'fs/promises';
 
@@ -45,7 +45,7 @@ import type {
   DiscussionVerdict,
   EvidenceDocument,
   ModeratorReport,
-} from '../types/core.js';
+} from '@codeagora/core/types/core.js';
 
 const mockWriteMarkdown = vi.mocked(writeMarkdown);
 const mockGetDiscussionsDir = vi.mocked(getDiscussionsDir);

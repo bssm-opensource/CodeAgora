@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseStance, parseForcedDecision } from '../l2/moderator.js';
+import { parseStance, parseForcedDecision } from '@codeagora/core/l2/moderator.js';
 
 describe('parseStance', () => {
   describe('P1: structured field patterns', () => {

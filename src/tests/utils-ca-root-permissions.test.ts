@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-import { ensureCaRoot } from '../utils/fs.js';
+import { ensureCaRoot } from '@codeagora/shared/utils/fs.js';
 
 describe('ensureCaRoot', () => {
   let tmpDir: string;

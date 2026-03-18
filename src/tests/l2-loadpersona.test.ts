@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
-import { loadPersona } from '../l2/moderator.js';
+import { loadPersona } from '@codeagora/core/l2/moderator.js';
 
 // Mock fs/promises
 vi.mock('fs/promises', () => ({

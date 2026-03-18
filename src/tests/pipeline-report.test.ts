@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PipelineTelemetry } from '../pipeline/telemetry.js';
-import { generateReport, formatReportText, formatReportJson } from '../pipeline/report.js';
+import { PipelineTelemetry } from '@codeagora/core/pipeline/telemetry.js';
+import { generateReport, formatReportText, formatReportJson } from '@codeagora/core/pipeline/report.js';
 
 describe('generateReport', () => {
   let telemetry: PipelineTelemetry;

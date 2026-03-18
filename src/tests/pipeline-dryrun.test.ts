@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { estimateTokensFromDiff, dryRun, formatDryRunText } from '../pipeline/dryrun.js';
-import type { Config } from '../types/config.js';
+import { estimateTokensFromDiff, dryRun, formatDryRunText } from '@codeagora/core/pipeline/dryrun.js';
+import type { Config } from '@codeagora/core/types/config.js';
 
 // ============================================================================
 // Fixtures

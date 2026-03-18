@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { executeBackend } from '../l1/backend.js';
+import { executeBackend } from '@codeagora/core/l1/backend.js';
 
 describe('Backend timeout with SIGKILL escalation', () => {
   it('rejects with timeout message when CLI backend exceeds timeout', async () => {

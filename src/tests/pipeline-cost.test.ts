@@ -7,8 +7,8 @@ import {
   loadPricing,
   estimateCost,
   formatCost,
-} from '../pipeline/cost-estimator.js';
-import type { TokenUsage, CostEstimate } from '../pipeline/cost-estimator.js';
+} from '@codeagora/core/pipeline/cost-estimator.js';
+import type { TokenUsage, CostEstimate } from '@codeagora/core/pipeline/cost-estimator.js';
 
 describe('Cost Estimator', () => {
   // Test 1: groq/llama-3.3-70b — pricing lookup 성공, 비용 계산 정확
