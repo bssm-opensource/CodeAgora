@@ -244,8 +244,11 @@ async function runDiscussion(
     // Check for consensus; on last round, force decision on tie
     const consensus = checkConsensus(round, discussion, roundNum === settings.maxRounds);
     if (consensus.reached) {
-      // Only run objection protocol on agree-consensus (not dismiss)
-      if (consensus.severity !== 'DISMISSED' && objectionRoundsUsed < maxObjectionRounds) {
+      // Only run objection protocol on agree-consensus (not dismiss),
+      // and NOT on the last round — extending when no rounds remain
+      // would discard the consensus and fall through to forced decision (#88)
+      const isLastRound = roundNum === settings.maxRounds;
+      if (!isLastRound && consensus.severity !== 'DISMISSED' && objectionRoundsUsed < maxObjectionRounds) {
         const consensusDeclaration = `Consensus: ${consensus.severity} - ${consensus.reasoning}`;
         const objectionResult = await checkForObjections(
           consensusDeclaration,
