@@ -10,6 +10,7 @@ import { writeDiscussionRound, writeDiscussionVerdict, writeSupportersLog } from
 import { checkForObjections, handleObjections } from './objection.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { validateDiffPath } from '../utils/path-validation.js';
 
 // ============================================================================
 // Supporter Selection
@@ -85,25 +86,27 @@ function randomElement<T>(array: T[]): T | undefined {
 // ============================================================================
 
 /**
- * Load persona file content
+ * Load persona file content.
+ * Uses validateDiffPath for robust path traversal prevention
+ * (null byte check, ".." segment detection, allowed-root containment).
  */
-async function loadPersona(personaPath: string): Promise<string> {
+export async function loadPersona(personaPath: string): Promise<string> {
   try {
-    // Block absolute paths to prevent path traversal
+    // Block absolute paths explicitly before validation
     if (path.isAbsolute(personaPath)) {
       console.warn(`[Persona] Absolute path blocked: ${personaPath}`);
       return '';
     }
 
-    // Resolve relative to project root and verify it stays within
+    // Validate using shared utility — checks null bytes, "..", and containment
     const projectRoot = process.cwd();
-    const fullPath = path.resolve(projectRoot, personaPath);
-    if (!fullPath.startsWith(projectRoot + path.sep) && fullPath !== projectRoot) {
-      console.warn(`[Persona] Path traversal blocked: ${personaPath}`);
+    const result = validateDiffPath(personaPath, { allowedRoots: [projectRoot] });
+    if (!result.success) {
+      console.warn(`[Persona] Path validation failed: ${result.error}`);
       return '';
     }
 
-    const content = await readFile(fullPath, 'utf-8');
+    const content = await readFile(result.data, 'utf-8');
     return content.trim();
   } catch (error) {
     console.warn(`[Persona] Failed to load ${personaPath}:`, error instanceof Error ? error.message : error);
