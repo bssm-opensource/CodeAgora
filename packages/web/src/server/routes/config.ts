@@ -51,6 +51,14 @@ configRoutes.put('/', async (c) => {
   }
 
   const configPath = await getExistingConfigPath();
+
+  if (configPath?.endsWith('.yaml') || configPath?.endsWith('.yml')) {
+    return c.json(
+      { error: 'YAML config editing is not yet supported. Use .ca/config.json instead.' },
+      501,
+    );
+  }
+
   const targetPath = configPath ?? path.join(CA_ROOT, 'config.json');
 
   await writeFile(targetPath, JSON.stringify(result.data, null, 2), 'utf-8');
