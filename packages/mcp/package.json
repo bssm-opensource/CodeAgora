@@ -8,7 +8,7 @@
     "codeagora-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "echo skip",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

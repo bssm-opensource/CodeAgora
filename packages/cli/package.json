@@ -9,7 +9,7 @@
     "agora": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "echo skip",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src/",

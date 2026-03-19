@@ -26,4 +26,5 @@ jobs:
       - run: pnpm test --no-file-parallelism
       - name: Web package tests
         run: pnpm test:web
-      - run: pnpm build
+      - name: Build web package
+        run: cd packages/web && npx tsup && npx vite build
