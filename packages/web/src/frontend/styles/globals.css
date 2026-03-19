@@ -137,3 +137,532 @@ a:hover {
   color: var(--color-accent-hover);
   text-decoration: underline;
 }
+
+/* ============================================================================
+   Severity Badges
+   ============================================================================ */
+
+.severity-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+.severity-badge--large {
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 14px;
+}
+
+.severity-badge--harshly-critical {
+  background-color: rgba(188, 107, 255, 0.15);
+  color: #bc6bff;
+}
+
+.severity-badge--critical {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: var(--color-error);
+}
+
+.severity-badge--warning {
+  background-color: rgba(210, 153, 34, 0.15);
+  color: var(--color-warning);
+}
+
+.severity-badge--suggestion {
+  background-color: rgba(63, 185, 80, 0.15);
+  color: var(--color-success);
+}
+
+/* ============================================================================
+   Verdict Banner
+   ============================================================================ */
+
+.verdict-banner {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.verdict-banner--accept {
+  background-color: rgba(63, 185, 80, 0.1);
+  border-color: rgba(63, 185, 80, 0.3);
+}
+
+.verdict-banner--reject {
+  background-color: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.3);
+}
+
+.verdict-banner--needs-human {
+  background-color: rgba(210, 153, 34, 0.1);
+  border-color: rgba(210, 153, 34, 0.3);
+}
+
+.verdict-banner__header {
+  margin-bottom: 8px;
+}
+
+.verdict-banner__decision {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.verdict-banner--accept .verdict-banner__decision {
+  color: var(--color-success);
+}
+
+.verdict-banner--reject .verdict-banner__decision {
+  color: var(--color-error);
+}
+
+.verdict-banner--needs-human .verdict-banner__decision {
+  color: var(--color-warning);
+}
+
+.verdict-banner__reasoning {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.verdict-banner__questions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.verdict-banner__questions-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-warning);
+  margin-bottom: 8px;
+}
+
+.verdict-banner__questions-list {
+  list-style: disc;
+  padding-left: 20px;
+  color: var(--color-text-secondary);
+}
+
+.verdict-banner__questions-list li {
+  margin-bottom: 4px;
+}
+
+/* ============================================================================
+   Severity Summary Bar
+   ============================================================================ */
+
+.severity-summary {
+  margin-bottom: 24px;
+}
+
+.severity-summary__bar {
+  display: flex;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--color-bg-tertiary);
+  margin-bottom: 8px;
+}
+
+.severity-summary__segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 28px;
+}
+
+.severity-summary__segment--harshly-critical {
+  background-color: rgba(188, 107, 255, 0.6);
+}
+
+.severity-summary__segment--critical {
+  background-color: rgba(248, 81, 73, 0.6);
+}
+
+.severity-summary__segment--warning {
+  background-color: rgba(210, 153, 34, 0.6);
+}
+
+.severity-summary__segment--suggestion {
+  background-color: rgba(63, 185, 80, 0.6);
+}
+
+.severity-summary__legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.severity-summary__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.severity-summary__legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ============================================================================
+   Diff Viewer
+   ============================================================================ */
+
+.diff-viewer {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  background-color: var(--color-bg-secondary);
+}
+
+.diff-viewer__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.diff-line {
+  border: none;
+}
+
+.diff-line__number {
+  width: 50px;
+  min-width: 50px;
+  padding: 0 8px;
+  text-align: right;
+  color: var(--color-text-secondary);
+  user-select: none;
+  vertical-align: top;
+  opacity: 0.6;
+}
+
+.diff-line__content {
+  padding: 0 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.diff-line__content code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.diff-added {
+  background-color: rgba(63, 185, 80, 0.1);
+}
+
+.diff-added .diff-line__content {
+  border-left: 3px solid var(--color-success);
+}
+
+.diff-removed {
+  background-color: rgba(248, 81, 73, 0.1);
+}
+
+.diff-removed .diff-line__content {
+  border-left: 3px solid var(--color-error);
+}
+
+.diff-context {
+  background-color: transparent;
+}
+
+.diff-context .diff-line__content {
+  border-left: 3px solid transparent;
+}
+
+.diff-header {
+  background-color: rgba(88, 166, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.diff-header .diff-line__content {
+  border-left: 3px solid var(--color-accent);
+  font-style: italic;
+}
+
+.diff-line--has-issue {
+  background-color: rgba(210, 153, 34, 0.08);
+}
+
+.diff-line--issue-marker {
+  background-color: var(--color-bg-tertiary);
+}
+
+.diff-issue-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.diff-issue-marker:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.diff-issue-marker__title {
+  font-weight: 500;
+}
+
+/* ============================================================================
+   Issue Card
+   ============================================================================ */
+
+.issue-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background-color: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.issue-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.issue-card__header:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.issue-card__header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.issue-card__header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.issue-card__title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-card__confidence {
+  font-size: 12px;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.issue-card__location {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.issue-card__toggle {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.issue-card__body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.issue-card__section {
+  margin-top: 12px;
+}
+
+.issue-card__section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.issue-card__text {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.issue-card__evidence-list {
+  list-style: disc;
+  padding-left: 20px;
+  color: var(--color-text);
+}
+
+.issue-card__evidence-list li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.issue-card__reviewers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.issue-card__reviewer-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ============================================================================
+   Review Detail Page
+   ============================================================================ */
+
+.review-detail__header {
+  margin-bottom: 20px;
+}
+
+.review-detail__meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.review-detail__meta-item {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.review-status {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-status--completed {
+  color: var(--color-success);
+  background-color: rgba(63, 185, 80, 0.1);
+}
+
+.review-status--in-progress {
+  color: var(--color-accent);
+  background-color: rgba(88, 166, 255, 0.1);
+}
+
+.review-status--failed {
+  color: var(--color-error);
+  background-color: rgba(248, 81, 73, 0.1);
+}
+
+.review-detail__section {
+  margin-bottom: 28px;
+}
+
+.review-detail__section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--color-text);
+}
+
+.review-detail__empty {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.review-detail__issues {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   Discussion Card
+   ============================================================================ */
+
+.discussion-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background-color: var(--color-bg-secondary);
+}
+
+.discussion-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.discussion-card__file {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-accent);
+}
+
+.discussion-card__rounds {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.discussion-card__consensus {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.discussion-card__consensus--reached {
+  color: var(--color-success);
+}
+
+.discussion-card__reasoning {
+  color: var(--color-text);
+  line-height: 1.5;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.discussion-card__severity {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
