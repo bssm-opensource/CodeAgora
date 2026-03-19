@@ -13,6 +13,7 @@ export default defineConfig({
       '@codeagora/notifications': path.resolve(__dirname, 'packages/notifications/src'),
       '@codeagora/cli': path.resolve(__dirname, 'packages/cli/src'),
       '@codeagora/tui': path.resolve(__dirname, 'packages/tui/src'),
+      '@codeagora/mcp': path.resolve(__dirname, 'packages/mcp/src'),
       // Pin npm deps to real pnpm store paths for vi.mock interception
       'ai': resolveReal('ai'),
       '@ai-sdk/groq': resolveReal('@ai-sdk/groq'),
