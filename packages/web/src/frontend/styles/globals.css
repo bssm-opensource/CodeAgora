@@ -1519,3 +1519,219 @@ a:hover {
   background-color: rgba(88, 166, 255, 0.15);
   color: var(--color-accent);
 }
+
+/* ============================================================================
+   Model Intelligence Dashboard
+   ============================================================================ */
+
+.model-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.model-section {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.model-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+
+/* Leaderboard Table */
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.leaderboard-table th {
+  text-align: left;
+  padding: 8px 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.leaderboard-table th:hover {
+  color: var(--color-text);
+}
+
+.leaderboard-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.leaderboard-table tr:hover td {
+  background-color: var(--color-bg-tertiary);
+}
+
+.leaderboard-table tr:first-child td {
+  border-left: 3px solid var(--color-accent);
+}
+
+.win-rate--high { color: var(--color-success); font-weight: 600; }
+.win-rate--medium { color: var(--color-warning); font-weight: 600; }
+.win-rate--low { color: var(--color-error); font-weight: 600; }
+
+.confidence-interval {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* Quality Trend Chart */
+
+.quality-chart {
+  position: relative;
+}
+
+.quality-chart svg {
+  width: 100%;
+  height: 250px;
+}
+
+.quality-chart__legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.quality-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.quality-chart__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Selection Frequency */
+
+.frequency-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.frequency-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.frequency-bar__label {
+  min-width: 180px;
+  font-size: 13px;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frequency-bar__track {
+  flex: 1;
+  height: 20px;
+  background-color: var(--color-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.frequency-bar__fill {
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+  min-width: 2px;
+}
+
+.frequency-bar__count {
+  min-width: 40px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* Provider Reliability */
+
+.provider-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.provider-card {
+  padding: 14px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.provider-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.provider-card__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.provider-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.provider-status--healthy {
+  color: var(--color-success);
+  background-color: rgba(63, 185, 80, 0.15);
+}
+
+.provider-status--degraded {
+  color: var(--color-warning);
+  background-color: rgba(210, 153, 34, 0.15);
+}
+
+.provider-status--unhealthy {
+  color: var(--color-error);
+  background-color: rgba(248, 81, 73, 0.15);
+}
+
+.provider-card__stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 2px 0;
+}
+
+.provider-card__stat-value {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
