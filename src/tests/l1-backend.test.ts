@@ -165,11 +165,11 @@ describe('executeBackend() dispatches correct CLI command per backend', () => {
     );
   });
 
-  it('spawns gh copilot suggest for copilot backend', async () => {
+  it('spawns copilot CLI for copilot backend', async () => {
     await executeBackend(makeInput({ backend: 'copilot', model: 'gpt-4o', provider: undefined }));
     expect(mockSpawn).toHaveBeenCalledWith(
-      'gh',
-      ['copilot', 'suggest', '--model', 'gpt-4o'],
+      'copilot',
+      ['-p', 'Review this code', '-s', '--allow-all', '--model', 'gpt-4o'],
       expect.any(Object)
     );
   });

@@ -83,8 +83,10 @@ export async function executeBackend(input: BackendInput): Promise<string> {
       resolve(stdout.trim());
     });
 
-    // Write prompt to stdin and close
-    child.stdin.write(prompt);
+    // Write prompt to stdin and close (copilot uses -p flag instead)
+    if (backend !== 'copilot') {
+      child.stdin.write(prompt);
+    }
     child.stdin.end();
   });
 }
@@ -134,8 +136,8 @@ function buildCommand(input: BackendInput): CliCommand {
       };
     case 'copilot':
       return {
-        bin: 'gh',
-        args: ['copilot', 'suggest', '--model', validateArg(model, 'model')],
+        bin: 'copilot',
+        args: ['-p', input.prompt, '-s', '--allow-all', '--model', validateArg(model, 'model')],
       };
     default:
       throw new Error(`Unsupported CLI backend: ${backend}`);
