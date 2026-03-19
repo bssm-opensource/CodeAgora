@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": true,
@@ -30,7 +30,9 @@
       "@codeagora/tui": ["./packages/tui/src/index.ts"],
       "@codeagora/tui/*": ["./packages/tui/src/*"],
       "@codeagora/mcp": ["./packages/mcp/src/index.ts"],
-      "@codeagora/mcp/*": ["./packages/mcp/src/*"]
+      "@codeagora/mcp/*": ["./packages/mcp/src/*"],
+      "@codeagora/web": ["./packages/web/src/index.ts"],
+      "@codeagora/web/*": ["./packages/web/src/*"]
     }
   },
   "include": [
