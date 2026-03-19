@@ -64,7 +64,7 @@ export function startServer(options: ServerOptions = {}): {
   close: () => void;
 } {
   const port = options.port ?? (Number(process.env['PORT']) || 6274);
-  const hostname = options.hostname ?? '0.0.0.0';
+  const hostname = options.hostname ?? '127.0.0.1';
 
   const app = createApp();
   const { injectWebSocket } = setupWebSocket(app);

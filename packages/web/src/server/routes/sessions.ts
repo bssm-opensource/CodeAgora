@@ -4,34 +4,11 @@
  */
 
 import { Hono } from 'hono';
-import { readdir, readFile } from 'fs/promises';
 import path from 'path';
 import type { SessionMetadata } from '@codeagora/core/types/core.js';
+import { readJsonSafe, readdirSafe } from '../utils/fs-helpers.js';
 
 const CA_ROOT = '.ca';
-
-/**
- * Safely read and parse a JSON file, returning null on failure.
- */
-async function readJsonSafe<T>(filePath: string): Promise<T | null> {
-  try {
-    const content = await readFile(filePath, 'utf-8');
-    return JSON.parse(content) as T;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * List directory entries safely, returning empty array on failure.
- */
-async function readdirSafe(dirPath: string): Promise<string[]> {
-  try {
-    return await readdir(dirPath);
-  } catch {
-    return [];
-  }
-}
 
 export const sessionRoutes = new Hono();
 
@@ -142,14 +119,14 @@ sessionRoutes.get('/:date/:id/verdict', async (c) => {
 /**
  * Load all review JSON files from a session's reviews/ directory.
  */
-async function loadSessionReviews(sessionDir: string): Promise<unknown[]> {
+async function loadSessionReviews(sessionDir: string): Promise<Record<string, unknown>[]> {
   const reviewsDir = path.join(sessionDir, 'reviews');
   const files = await readdirSafe(reviewsDir);
-  const reviews: unknown[] = [];
+  const reviews: Record<string, unknown>[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.json')) continue;
-    const data = await readJsonSafe(path.join(reviewsDir, file));
+    const data = await readJsonSafe<Record<string, unknown>>(path.join(reviewsDir, file));
     if (data) reviews.push(data);
   }
 
@@ -159,14 +136,14 @@ async function loadSessionReviews(sessionDir: string): Promise<unknown[]> {
 /**
  * Load all discussion JSON files from a session's discussions/ directory.
  */
-async function loadSessionDiscussions(sessionDir: string): Promise<unknown[]> {
+async function loadSessionDiscussions(sessionDir: string): Promise<Record<string, unknown>[]> {
   const discussionsDir = path.join(sessionDir, 'discussions');
   const files = await readdirSafe(discussionsDir);
-  const discussions: unknown[] = [];
+  const discussions: Record<string, unknown>[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.json')) continue;
-    const data = await readJsonSafe(path.join(discussionsDir, file));
+    const data = await readJsonSafe<Record<string, unknown>>(path.join(discussionsDir, file));
     if (data) discussions.push(data);
   }
 

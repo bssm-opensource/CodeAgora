@@ -37,6 +37,6 @@ export async function errorHandler(c: Context, next: Next): Promise<Response> {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     const status = (error as { status?: number }).status ?? 500;
-    return c.json({ error: message }, status as 500);
+    return c.json({ error: message }, { status });
   }
 }

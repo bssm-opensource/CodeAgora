@@ -22,6 +22,11 @@ export function useApi<T>(path: string): UseApiResult<T> {
   }, []);
 
   useEffect(() => {
+    if (!path) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchData(): Promise<void> {

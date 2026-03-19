@@ -22,6 +22,17 @@ configRoutes.get('/', async (c) => {
     return c.json({ error: 'No configuration file found' }, 404);
   }
 
+  if (
+    typeof config === 'object' &&
+    '_format' in config &&
+    (config as Record<string, unknown>)['_format'] === 'yaml'
+  ) {
+    return c.json(
+      { error: 'YAML config editing is not yet supported in the dashboard. Use .ca/config.json instead.' },
+      501,
+    );
+  }
+
   return c.json(config);
 });
 
@@ -44,7 +55,7 @@ configRoutes.put('/', async (c) => {
 
   await writeFile(targetPath, JSON.stringify(result.data, null, 2), 'utf-8');
 
-  return c.json({ status: 'saved', path: targetPath });
+  return c.json({ status: 'saved' });
 });
 
 /**
@@ -86,10 +97,9 @@ async function loadConfig(): Promise<unknown | null> {
   }
 
   try {
-    const content = await readFile(yamlPath, 'utf-8');
-    // YAML parsing: for now return raw string wrapped in object
-    // Full YAML support can be added via js-yaml dependency later
-    return { _raw: content, _format: 'yaml' };
+    await readFile(yamlPath, 'utf-8');
+    // YAML config detected — return sentinel so caller can respond with 501
+    return { _format: 'yaml' } as { _format: string };
   } catch {
     return null;
   }

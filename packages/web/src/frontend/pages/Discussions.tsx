@@ -28,6 +28,10 @@ interface SessionData {
   rounds: Record<string, DiscussionRound[]>;
 }
 
+// Validation patterns — defined outside component to avoid re-creation on renders
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ID_PATTERN = /^\d{3}$/;
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -37,16 +41,24 @@ export function Discussions(): React.JSX.Element {
   const [idInput, setIdInput] = useState('');
   const [sessionPath, setSessionPath] = useState<string | null>(null);
   const [selectedDiscussionId, setSelectedDiscussionId] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { data: session, loading, error, refetch } = useApi<SessionData>(
     sessionPath ?? '',
   );
 
   const handleLoad = useCallback(() => {
-    if (dateInput.trim() && idInput.trim()) {
-      setSessionPath(`/api/sessions/${dateInput.trim()}/${idInput.trim()}`);
-      setSelectedDiscussionId(null);
+    const trimmedDate = dateInput.trim();
+    const trimmedId = idInput.trim();
+
+    if (!DATE_PATTERN.test(trimmedDate) || !ID_PATTERN.test(trimmedId)) {
+      setValidationError('Date must be YYYY-MM-DD and Session ID must be 3 digits.');
+      return;
     }
+
+    setValidationError(null);
+    setSessionPath(`/api/sessions/${trimmedDate}/${trimmedId}`);
+    setSelectedDiscussionId(null);
   }, [dateInput, idInput]);
 
   const handleKeyDown = useCallback(
@@ -103,7 +115,7 @@ export function Discussions(): React.JSX.Element {
           <input
             className="filter-input"
             type="text"
-            placeholder="Session ID"
+            placeholder="Session ID (3 digits)"
             value={idInput}
             onChange={(e) => setIdInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -118,6 +130,9 @@ export function Discussions(): React.JSX.Element {
             Load Session
           </button>
         </div>
+        {validationError && (
+          <p className="error-text" role="alert">{validationError}</p>
+        )}
       </div>
     );
   }

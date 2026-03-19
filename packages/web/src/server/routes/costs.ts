@@ -4,8 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import { readdir, readFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { readJsonSafe, readdirSafe } from '../utils/fs-helpers.js';
 
 const CA_ROOT = '.ca';
 
@@ -73,7 +75,8 @@ costRoutes.get('/', async (c) => {
  */
 costRoutes.get('/pricing', async (c) => {
   try {
-    const pricingPath = path.join('packages', 'shared', 'src', 'data', 'pricing.json');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pricingPath = path.resolve(__dirname, '../../../../shared/src/data/pricing.json');
     const content = await readFile(pricingPath, 'utf-8');
     return c.json(JSON.parse(content));
   } catch {
@@ -122,25 +125,3 @@ function extractCosts(
   return { date, sessionId, totalCost, reviewerCosts, layerCosts };
 }
 
-/**
- * Safely read directory entries, returning empty array on failure.
- */
-async function readdirSafe(dirPath: string): Promise<string[]> {
-  try {
-    return await readdir(dirPath);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Safely read and parse a JSON file, returning null on failure.
- */
-async function readJsonSafe<T>(filePath: string): Promise<T | null> {
-  try {
-    const content = await readFile(filePath, 'utf-8');
-    return JSON.parse(content) as T;
-  } catch {
-    return null;
-  }
-}
