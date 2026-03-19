@@ -29,7 +29,7 @@ export type SortDirection = 'asc' | 'desc';
 export interface SessionDetail {
   metadata: SessionMetadata;
   reviews: SessionReview[];
-  discussions: unknown[];
+  discussions: Record<string, unknown>[];
   verdict: SessionVerdict | null;
 }
 

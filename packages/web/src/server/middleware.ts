@@ -4,6 +4,7 @@
  */
 
 import type { Context, Next } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 /**
  * CORS middleware — allows localhost origins in development.
@@ -36,7 +37,7 @@ export async function errorHandler(c: Context, next: Next): Promise<Response> {
     return c.res;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';
-    const status = (error as { status?: number }).status ?? 500;
-    return c.json({ error: message }, { status });
+    const status = ((error as { status?: number }).status ?? 500) as ContentfulStatusCode;
+    return c.json({ error: message }, status);
   }
 }
