@@ -11,6 +11,7 @@ import { checkForObjections, handleObjections } from './objection.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
+import type { DiscussionEmitter } from './event-emitter.js';
 
 // ============================================================================
 // Supporter Selection
@@ -126,16 +127,18 @@ export interface ModeratorInput {
   date: string;
   sessionId: string;
   language?: 'en' | 'ko';
+  /** Optional event emitter for real-time discussion events (2.1) */
+  emitter?: DiscussionEmitter;
 }
 
 /**
  * Run all discussions and generate final report
  */
 export async function runModerator(input: ModeratorInput): Promise<ModeratorReport> {
-  const { config, supporterPoolConfig, discussions, settings, date, sessionId, language } = input;
+  const { config, supporterPoolConfig, discussions, settings, date, sessionId, language, emitter } = input;
 
   const results = await Promise.allSettled(
-    discussions.map((d) => runDiscussion(d, config, supporterPoolConfig, settings, date, sessionId, language))
+    discussions.map((d) => runDiscussion(d, config, supporterPoolConfig, settings, date, sessionId, language, emitter))
   );
 
   const verdicts: DiscussionVerdict[] = [];
@@ -191,7 +194,8 @@ async function runDiscussion(
   settings: DiscussionSettings,
   date: string,
   sessionId: string,
-  language?: 'en' | 'ko'
+  language?: 'en' | 'ko',
+  emitter?: DiscussionEmitter,
 ): Promise<DiscussionResult> {
   const rounds: DiscussionRound[] = [];
 
@@ -235,12 +239,23 @@ async function runDiscussion(
   // Log supporter combination
   await writeSupportersLog(date, sessionId, discussion.id, selectedSupporters);
 
+  // Emit discussion-start event (2.1)
+  emitter?.emitEvent({
+    type: 'discussion-start',
+    discussionId: discussion.id,
+    issueTitle: discussion.issueTitle,
+    filePath: discussion.filePath,
+    severity: discussion.severity,
+  });
+
   // Track objection rounds to prevent infinite loops
   let objectionRoundsUsed = 0;
   const maxObjectionRounds = 1;
 
   // Run up to maxRounds
   for (let roundNum = 1; roundNum <= settings.maxRounds; roundNum++) {
+    emitter?.emitEvent({ type: 'round-start', discussionId: discussion.id, roundNum });
+
     const round = await runRound(
       discussion,
       roundNum,
@@ -249,6 +264,18 @@ async function runDiscussion(
       language
     );
 
+    // Emit supporter responses (2.1)
+    for (const resp of round.supporterResponses) {
+      emitter?.emitEvent({
+        type: 'supporter-response',
+        discussionId: discussion.id,
+        roundNum,
+        supporterId: resp.supporterId,
+        stance: resp.stance,
+        response: resp.response,
+      });
+    }
+
     rounds.push(round);
 
     // Write round file
@@ -256,6 +283,13 @@ async function runDiscussion(
 
     // Check for consensus; on last round, force decision on tie
     const consensus = checkConsensus(round, discussion, roundNum === settings.maxRounds);
+    emitter?.emitEvent({
+      type: 'consensus-check',
+      discussionId: discussion.id,
+      roundNum,
+      reached: consensus.reached,
+      severity: consensus.severity,
+    });
     if (consensus.reached) {
       // Only run objection protocol on agree-consensus (not dismiss),
       // and NOT on the last round — extending when no rounds remain
@@ -304,6 +338,14 @@ async function runDiscussion(
       // Write verdict file
       await writeDiscussionVerdict(date, sessionId, verdict);
 
+      emitter?.emitEvent({
+        type: 'discussion-end',
+        discussionId: discussion.id,
+        finalSeverity: verdict.finalSeverity,
+        consensusReached: true,
+        rounds: roundNum,
+      });
+
       return { verdict, rounds };
     }
   }
@@ -325,8 +367,23 @@ async function runDiscussion(
     rounds: settings.maxRounds,
   };
 
+  emitter?.emitEvent({
+    type: 'forced-decision',
+    discussionId: discussion.id,
+    severity: finalVerdict.severity,
+    reasoning: finalVerdict.reasoning,
+  });
+
   // Write verdict file
   await writeDiscussionVerdict(date, sessionId, verdict);
+
+  emitter?.emitEvent({
+    type: 'discussion-end',
+    discussionId: discussion.id,
+    finalSeverity: verdict.finalSeverity,
+    consensusReached: false,
+    rounds: settings.maxRounds,
+  });
 
   return { verdict, rounds };
 }
