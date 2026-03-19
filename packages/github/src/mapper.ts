@@ -428,7 +428,7 @@ export function buildReviewBadgeUrl(decision: string, severityCounts: Record<str
 
   const criticalCount = (severityCounts['HARSHLY_CRITICAL'] ?? 0) + (severityCounts['CRITICAL'] ?? 0);
   const detail = criticalCount > 0
-    ? `${decision}%20(${criticalCount}%20critical)`
+    ? `${decision} (${criticalCount} critical)`
     : decision;
 
   return `https://img.shields.io/badge/CodeAgora-${encodeURIComponent(detail)}-${color}`;

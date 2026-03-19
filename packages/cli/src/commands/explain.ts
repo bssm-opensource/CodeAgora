@@ -21,7 +21,17 @@ export async function explainSession(baseDir: string, sessionPath: string): Prom
     throw new Error('Session path must be in YYYY-MM-DD/NNN format');
   }
 
+  // Path traversal guard
+  if (date.includes('..') || id.includes('..')) {
+    throw new Error('Path traversal detected in session path');
+  }
+
   const sessionDir = path.join(baseDir, '.ca', 'sessions', date, id);
+  const resolved = path.resolve(sessionDir);
+  const expectedPrefix = path.resolve(path.join(baseDir, '.ca', 'sessions'));
+  if (!resolved.startsWith(expectedPrefix + path.sep)) {
+    throw new Error('Session path resolves outside sessions directory');
+  }
   const lines: string[] = [];
 
   // Read metadata

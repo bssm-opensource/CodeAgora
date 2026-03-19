@@ -319,7 +319,7 @@ async function runDiscussion(
           };
           await writeDiscussionRound(date, sessionId, discussion.id, objectionRound);
 
-          console.log(`[Moderator] Objections raised, extending discussion: ${objectionHandling.extensionReason}`);
+          process.stderr.write(`[Moderator] Objections raised, extending discussion: ${objectionHandling.extensionReason}\n`);
           // Continue to next round — consensus was premature
           continue;
         }

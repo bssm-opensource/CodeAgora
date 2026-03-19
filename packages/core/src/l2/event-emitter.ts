@@ -77,8 +77,17 @@ export type DiscussionEvent =
 // ============================================================================
 
 export class DiscussionEmitter extends EventEmitter {
+  constructor() {
+    super();
+    this.setMaxListeners(50);
+  }
+
   emitEvent(event: DiscussionEvent): void {
     this.emit(event.type, event);
     this.emit('*', event); // Wildcard for catch-all listeners
+  }
+
+  dispose(): void {
+    this.removeAllListeners();
   }
 }

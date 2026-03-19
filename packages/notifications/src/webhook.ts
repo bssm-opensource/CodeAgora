@@ -77,7 +77,7 @@ const ALLOWED_WEBHOOK_HOSTS = new Set([
   'slack.com',
 ]);
 
-function validateWebhookUrl(url: string): void {
+export function validateWebhookUrl(url: string): void {
   let parsed: URL;
   try {
     parsed = new URL(url);

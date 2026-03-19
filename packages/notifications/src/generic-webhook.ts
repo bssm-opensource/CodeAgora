@@ -24,6 +24,12 @@ export async function sendGenericWebhook(
     return;
   }
 
+  // Secret length validation
+  if (!config.secret || config.secret.length < 16) {
+    process.stderr.write('[codeagora] Generic webhook: secret too short (min 16 chars)\n');
+    return;
+  }
+
   // Validate HTTPS
   let parsed: URL;
   try {

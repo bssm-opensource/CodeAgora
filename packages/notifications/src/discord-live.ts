@@ -6,6 +6,7 @@
 
 import type { DiscussionEvent } from '@codeagora/core/l2/event-emitter.js';
 import type { NotificationPayload } from './webhook.js';
+import { validateWebhookUrl } from './webhook.js';
 
 // ============================================================================
 // Types
@@ -41,6 +42,7 @@ const SEVERITY_COLOR: Record<string, number> = {
 
 async function postDiscord(url: string, body: unknown): Promise<string | null> {
   try {
+    validateWebhookUrl(url);
     const res = await fetch(url + '?wait=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

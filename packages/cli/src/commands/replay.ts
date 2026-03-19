@@ -6,6 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import type { EvidenceDocument } from '@codeagora/core/types/core.js';
+import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
 
 export interface ReplayResult {
   sessionPath: string;
@@ -23,7 +24,17 @@ export async function loadSessionForReplay(baseDir: string, sessionPath: string)
     throw new Error('Session path must be in YYYY-MM-DD/NNN format');
   }
 
+  // Path traversal guard
+  if (date.includes('..') || id.includes('..')) {
+    throw new Error('Path traversal detected in session path');
+  }
+
   const sessionDir = path.join(baseDir, '.ca', 'sessions', date, id);
+  const resolved = path.resolve(sessionDir);
+  const expectedPrefix = path.resolve(path.join(baseDir, '.ca', 'sessions'));
+  if (!resolved.startsWith(expectedPrefix + path.sep)) {
+    throw new Error('Session path resolves outside sessions directory');
+  }
 
   // Read metadata to get diff path
   let metadata: Record<string, unknown> = {};
@@ -66,14 +77,17 @@ export async function loadSessionForReplay(baseDir: string, sessionPath: string)
     } catch { /* no reviews */ }
   }
 
-  // Read original diff if available
+  // Read original diff if available (validate path to prevent traversal)
   let diffContent: string | null = null;
   const diffPath = String(metadata['diffPath'] ?? '');
   if (diffPath) {
-    try {
-      diffContent = await fs.readFile(diffPath, 'utf-8');
-    } catch {
-      // Diff file may have been deleted
+    const validation = validateDiffPath(diffPath, { allowedRoots: [baseDir] });
+    if (validation.success) {
+      try {
+        diffContent = await fs.readFile(validation.data, 'utf-8');
+      } catch {
+        // Diff file may have been deleted
+      }
     }
   }
 

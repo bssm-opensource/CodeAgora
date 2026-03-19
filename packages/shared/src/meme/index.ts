@@ -9,6 +9,7 @@
 // ============================================================================
 
 function pick<T>(pool: T[]): T {
+  if (pool.length === 0) throw new Error('Cannot pick from empty pool');
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

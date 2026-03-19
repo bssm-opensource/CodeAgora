@@ -31,6 +31,7 @@ import { applyLearnedPatterns } from '../learning/filter.js';
 import { DiscussionEmitter } from '../l2/event-emitter.js';
 import { estimateDiffComplexity } from './diff-complexity.js';
 import { generateReport, formatReportText } from './report.js';
+import { trackDevilsAdvocate } from '../l2/devils-advocate-tracker.js';
 import { PipelineTelemetry } from './telemetry.js';
 import fs from 'fs/promises';
 
@@ -46,6 +47,8 @@ export interface PipelineInput {
   reviewerTimeoutMs?: number;
   skipDiscussion?: boolean;
   reviewerSelection?: { count?: number; names?: string[] };
+  /** Optional event emitter for real-time discussion events (2.1). Attach listeners before calling runPipeline. */
+  discussionEmitter?: DiscussionEmitter;
 }
 
 export interface PipelineSummary {
@@ -77,6 +80,10 @@ export interface PipelineResult {
   roundsPerDiscussion?: Record<string, import('../types/core.js').DiscussionRound[]>;
   /** Pre-formatted performance report text */
   performanceText?: string;
+  /** Diff complexity analysis */
+  diffComplexity?: import('./diff-complexity.js').DiffComplexity;
+  /** Devil's advocate effectiveness stats */
+  devilsAdvocateStats?: import('../l2/devils-advocate-tracker.js').DevilsAdvocateStats;
   /** Maps "filePath:startLine" → reviewer IDs that flagged the issue */
   reviewerMap?: Record<string, string[]>;
 }
@@ -87,8 +94,8 @@ export interface PipelineResult {
 export async function runPipeline(input: PipelineInput, progress?: ProgressEmitter): Promise<PipelineResult> {
   let session: SessionManager | undefined;
   // D-3: basic pipeline timing telemetry
-  const _telemetry = new PipelineTelemetry();
-  const _pipelineStartMs = Date.now();
+  const telemetry = new PipelineTelemetry();
+  const pipelineStartMs = Date.now();
 
   try {
     // Load credentials from ~/.config/codeagora/credentials
@@ -120,6 +127,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
     // Read diff
     const diffContent = await fs.readFile(input.diffPath, 'utf-8');
+    const diffComplexity = estimateDiffComplexity(diffContent);
     progress?.stageComplete('init', 'Config loaded');
 
     // === AUTO-APPROVE: Skip LLM pipeline for trivial diffs ===
@@ -324,7 +332,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
       // === L2 MODERATOR: Run Discussions ===
       progress?.stageStart('discuss', 'Moderating discussions...');
-      const discussionEmitter = new DiscussionEmitter();
+      const discussionEmitter = input.discussionEmitter ?? new DiscussionEmitter();
       moderatorReport = await runModerator({
         config: config.moderator,
         supporterPoolConfig: config.supporters,
@@ -459,7 +467,9 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       evidenceDocs: allEvidenceDocs,
       discussions: moderatorReport.discussions,
       roundsPerDiscussion: moderatorReport.roundsPerDiscussion,
-      performanceText: await generatePerformanceText(_telemetry),
+      performanceText: await generatePerformanceText(telemetry),
+      diffComplexity,
+      devilsAdvocateStats: trackDA(config, moderatorReport),
       reviewerMap: buildReviewerMap(allReviewResults),
     };
   } catch (error) {
@@ -523,6 +533,15 @@ export function mergeReviewOutputsByReviewer(results: ReviewOutput[]): ReviewOut
  * Generate performance report text from telemetry data.
  * Returns empty string if no telemetry records.
  */
+/**
+ * Track devil's advocate effectiveness if enabled.
+ */
+function trackDA(config: import('../types/config.js').Config, report: import('../types/core.js').ModeratorReport) {
+  const da = config.supporters?.devilsAdvocate;
+  if (!da?.enabled) return undefined;
+  return trackDevilsAdvocate(da.id, report.roundsPerDiscussion, report.discussions);
+}
+
 async function generatePerformanceText(telemetry: PipelineTelemetry): Promise<string> {
   try {
     const report = await generateReport(telemetry);
