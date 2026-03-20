@@ -12,7 +12,8 @@ import { applyThreshold } from '../l2/threshold.js';
 import { runModerator } from '../l2/moderator.js';
 import { writeModeratorReport, writeSuggestions } from '../l2/writer.js';
 import { deduplicateDiscussions } from '../l2/deduplication.js';
-import { extractMultipleSnippets } from '@codeagora/shared/utils/diff.js';
+import { extractMultipleSnippets, parseDiffFileRanges, readSurroundingContext } from '@codeagora/shared/utils/diff.js';
+import { estimateTokens } from './chunker.js';
 import { createLogger } from '@codeagora/shared/utils/logger.js';
 import { makeHeadVerdict, scanUnconfirmedQueue } from '../l3/verdict.js';
 import { writeHeadVerdict } from '../l3/writer.js';
@@ -56,6 +57,10 @@ export interface PipelineInput {
   discussionEmitter?: DiscussionEmitter;
   /** Disable result caching — always run a fresh review */
   noCache?: boolean;
+  /** Git repo root path — enables surrounding code context for reviewers */
+  repoPath?: string;
+  /** Number of surrounding lines to include around changed ranges (default 20, 0 = disabled) */
+  contextLines?: number;
 }
 
 export interface PipelineSummary {
@@ -137,6 +142,42 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
     // Read diff
     const diffContent = await fs.readFile(input.diffPath, 'utf-8');
     const diffComplexity = estimateDiffComplexity(diffContent);
+
+    // === SURROUNDING CONTEXT: Read source files for context-aware review ===
+    let surroundingContext: string | undefined;
+    const contextLinesCount = input.contextLines ?? 20;
+    if (input.repoPath && contextLinesCount > 0) {
+      try {
+        const fileRanges = parseDiffFileRanges(diffContent);
+        const maxTokens = config.chunking?.maxTokens ?? 8000;
+        const contextBudget = Math.floor(maxTokens * 0.3);
+        let currentContextLines = contextLinesCount;
+
+        while (currentContextLines > 0) {
+          const contextParts: string[] = [];
+          for (const { file, ranges } of fileRanges) {
+            const ctx = await readSurroundingContext(
+              input.repoPath,
+              file,
+              ranges,
+              currentContextLines
+            );
+            if (ctx) contextParts.push(ctx);
+          }
+
+          const combined = contextParts.join('\n\n');
+          if (estimateTokens(combined) <= contextBudget || currentContextLines <= 2) {
+            if (combined) surroundingContext = combined;
+            break;
+          }
+
+          currentContextLines = Math.floor(currentContextLines / 2);
+        }
+      } catch {
+        // Context gathering failed — continue without it
+      }
+    }
+
     progress?.stageComplete('init', 'Config loaded');
 
     // === CACHE: Check for identical diff + config (#109) ===
@@ -214,6 +255,13 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
         fileGroups,
         config.modelRouter
       );
+
+      // Inject surrounding context into each reviewer input (context-aware review)
+      if (surroundingContext) {
+        for (const ri of reviewerInputs) {
+          ri.surroundingContext = surroundingContext;
+        }
+      }
 
       const reviewResults = await executeReviewers(
         reviewerInputs,

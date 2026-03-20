@@ -85,6 +85,7 @@ program
   .option('--post-review', 'Post review comments back to the PR (requires --pr)', false)
   .option('--quick', 'Quick review (L1 only, skip discussion and verdict)')
   .option('--staged', 'Review staged changes (git diff --staged)')
+  .option('--context-lines <n>', 'Surrounding code context lines (default 20, 0 = disabled)', parseInt)
   .option('--json-stream', 'Stream NDJSON events during review (for CI/pipelines)')
   .option('--no-cache', 'Skip result caching — always run a fresh review')
   .action(async (diffPath: string | undefined, options: {
@@ -103,6 +104,7 @@ program
     postReview: boolean;
     quick?: boolean;
     staged?: boolean;
+    contextLines?: number;
     jsonStream?: boolean;
     cache: boolean;
   }) => {
@@ -222,6 +224,20 @@ program
         reviewerSelection = parseReviewerOption(options.reviewers);
       }
 
+      // Auto-detect git repo root for context-aware review
+      let repoPath: string | undefined;
+      const contextLines = options.contextLines ?? 20;
+      if (contextLines > 0) {
+        try {
+          const { execFileSync } = await import('child_process');
+          repoPath = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+            encoding: 'utf-8',
+          }).trim();
+        } catch {
+          // Not in a git repo — context-aware review disabled
+        }
+      }
+
       // Build pipeline options from CLI flags
       const pipelineOptions = {
         diffPath: resolvedPath,
@@ -233,6 +249,8 @@ program
         ...(options.quick && { skipDiscussion: true, skipHead: true }),
         ...(reviewerSelection && { reviewerSelection }),
         ...(!options.cache && { noCache: true }),
+        ...(repoPath && { repoPath }),
+        contextLines,
       };
 
       if (options.verbose) {
@@ -242,6 +260,8 @@ program
         if (options.timeout) console.log(`  Pipeline timeout: ${options.timeout}s`);
         if (options.reviewerTimeout) console.log(`  Reviewer timeout: ${options.reviewerTimeout}s`);
         if (!options.discussion) console.log(`  Discussion: skipped`);
+        if (repoPath) console.log(`  Context lines: ${contextLines}`);
+        else if (contextLines > 0) console.log(`  Context: disabled (not a git repo)`);
         console.log('---');
       }
 
@@ -861,6 +881,8 @@ Examples:
   ${displayName} review --staged                   Review staged changes
   ${displayName} review --quick                    Quick review (L1 only)
   ${displayName} review --verbose                   Show full issue details
+  ${displayName} review --context-lines 40         More surrounding context
+  ${displayName} review --context-lines 0          Disable context
   ${displayName} review --output json              JSON output for CI
   ${displayName} review --json-stream              Stream NDJSON for CI
   ${displayName} review --no-cache                 Skip cache, run fresh review

@@ -40,6 +40,8 @@ export interface ReviewerInput {
     family: string;
     isReasoning: boolean;
   };
+  /** Surrounding code context from source files (context-aware review) */
+  surroundingContext?: string;
 }
 
 /**
@@ -49,7 +51,7 @@ export async function executeReviewer(
   input: ReviewerInput,
   retries: number = 2
 ): Promise<ReviewOutput> {
-  const { config, groupName, diffContent, prSummary } = input;
+  const { config, groupName, diffContent, prSummary, surroundingContext } = input;
 
   let lastError: Error | undefined;
 
@@ -65,7 +67,7 @@ export async function executeReviewer(
         backend: config.backend,
         model: config.model,
         provider: config.provider,
-        prompt: buildReviewerPrompt(diffContent, prSummary),
+        prompt: buildReviewerPrompt(diffContent, prSummary, surroundingContext),
         timeout: config.timeout,
         signal: controller.signal,
       });
@@ -101,7 +103,7 @@ export async function executeReviewer(
         backend: fb.backend,
         model: fb.model,
         provider: fb.provider,
-        prompt: buildReviewerPrompt(diffContent, prSummary),
+        prompt: buildReviewerPrompt(diffContent, prSummary, surroundingContext),
         timeout: config.timeout,
       });
 
@@ -202,7 +204,7 @@ async function executeReviewerWithGuards(
   cb: CircuitBreaker,
   hm: HealthMonitor
 ): Promise<ReviewOutput> {
-  const { config, groupName, diffContent, prSummary } = input;
+  const { config, groupName, diffContent, prSummary, surroundingContext } = input;
   // Only guard API backends — those have an explicit provider field.
   const provider = config.provider;
   const useGuards = !!provider;
@@ -234,7 +236,7 @@ async function executeReviewerWithGuards(
         backend: config.backend,
         model: config.model,
         provider: config.provider,
-        prompt: buildReviewerPrompt(diffContent, prSummary),
+        prompt: buildReviewerPrompt(diffContent, prSummary, surroundingContext),
         timeout: config.timeout,
         signal: controller.signal,
       });
@@ -285,7 +287,7 @@ async function executeReviewerWithGuards(
         backend: fb.backend,
         model: fb.model,
         provider: fb.provider,
-        prompt: buildReviewerPrompt(diffContent, prSummary),
+        prompt: buildReviewerPrompt(diffContent, prSummary, surroundingContext),
         timeout: config.timeout,
       });
 
@@ -341,13 +343,23 @@ export function checkForfeitThreshold(
 // Prompt Building
 // ============================================================================
 
-function buildReviewerPrompt(diffContent: string, prSummary: string): string {
+function buildReviewerPrompt(diffContent: string, prSummary: string, surroundingContext?: string): string {
+  const contextSection = surroundingContext
+    ? `## Surrounding Code Context
+
+The following code context shows the surrounding lines of the changed files to help you understand the full picture:
+
+${surroundingContext}
+
+`
+    : '';
+
   return `# Code Review Task
 
 ## PR Summary
 ${prSummary}
 
-## Your Task
+${contextSection}## Your Task
 Review the following code changes and identify any issues. For each issue you find, write an evidence document in the following format:
 
 \`\`\`markdown
