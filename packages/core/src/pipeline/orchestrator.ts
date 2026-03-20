@@ -33,6 +33,9 @@ import { estimateDiffComplexity } from './diff-complexity.js';
 import { generateReport, formatReportText } from './report.js';
 import { trackDevilsAdvocate } from '../l2/devils-advocate-tracker.js';
 import { PipelineTelemetry } from './telemetry.js';
+import { computeHash } from '@codeagora/shared/utils/hash.js';
+import { lookupCache, addToCache } from '@codeagora/shared/utils/cache.js';
+import { CA_ROOT } from '@codeagora/shared/utils/fs.js';
 import fs from 'fs/promises';
 
 // ============================================================================
@@ -51,6 +54,8 @@ export interface PipelineInput {
   reviewerSelection?: { count?: number; names?: string[] };
   /** Optional event emitter for real-time discussion events (2.1). Attach listeners before calling runPipeline. */
   discussionEmitter?: DiscussionEmitter;
+  /** Disable result caching — always run a fresh review */
+  noCache?: boolean;
 }
 
 export interface PipelineSummary {
@@ -88,6 +93,8 @@ export interface PipelineResult {
   devilsAdvocateStats?: import('../l2/devils-advocate-tracker.js').DevilsAdvocateStats;
   /** Maps "filePath:startLine" → reviewer IDs that flagged the issue */
   reviewerMap?: Record<string, string[]>;
+  /** True when the result was served from cache (#109) */
+  cached?: boolean;
 }
 
 /**
@@ -131,6 +138,27 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
     const diffContent = await fs.readFile(input.diffPath, 'utf-8');
     const diffComplexity = estimateDiffComplexity(diffContent);
     progress?.stageComplete('init', 'Config loaded');
+
+    // === CACHE: Check for identical diff + config (#109) ===
+    const cacheKey = computeHash(diffContent + JSON.stringify(config.reviewers));
+    if (!input.noCache) {
+      try {
+        const cachedSessionPath = await lookupCache(CA_ROOT, cacheKey);
+        if (cachedSessionPath) {
+          const [cachedDate, cachedId] = cachedSessionPath.split('/');
+          if (cachedDate && cachedId) {
+            const cachedResultPath = `${CA_ROOT}/sessions/${cachedDate}/${cachedId}/result.json`;
+            const cachedRaw = await fs.readFile(cachedResultPath, 'utf-8');
+            const cachedResult = JSON.parse(cachedRaw) as PipelineResult;
+            // Clean up the empty session we just created
+            await session.setStatus('completed');
+            return { ...cachedResult, cached: true };
+          }
+        }
+      } catch {
+        // Cache miss or corrupt data — continue with fresh review
+      }
+    }
 
     // === AUTO-APPROVE: Skip LLM pipeline for trivial diffs ===
     if (config.autoApprove?.enabled) {
@@ -480,7 +508,7 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
     progress?.pipelineComplete('Done!');
 
-    return {
+    const pipelineResult: PipelineResult = {
       sessionId,
       date,
       status: 'success',
@@ -503,6 +531,19 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       devilsAdvocateStats: trackDA(config, moderatorReport),
       reviewerMap: buildReviewerMap(allReviewResults),
     };
+
+    // === CACHE: Persist result and update cache index (#109) ===
+    try {
+      const resultJsonPath = `${CA_ROOT}/sessions/${date}/${sessionId}/result.json`;
+      await fs.writeFile(resultJsonPath, JSON.stringify(pipelineResult, null, 2), 'utf-8');
+      if (!input.noCache) {
+        await addToCache(CA_ROOT, cacheKey, `${date}/${sessionId}`);
+      }
+    } catch {
+      // Cache write failure is non-fatal — pipeline result is still valid
+    }
+
+    return pipelineResult;
   } catch (error) {
     // Mark session as failed if it was created
     if (session) {

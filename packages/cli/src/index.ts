@@ -86,6 +86,7 @@ program
   .option('--quick', 'Quick review (L1 only, skip discussion and verdict)')
   .option('--staged', 'Review staged changes (git diff --staged)')
   .option('--json-stream', 'Stream NDJSON events during review (for CI/pipelines)')
+  .option('--no-cache', 'Skip result caching — always run a fresh review')
   .action(async (diffPath: string | undefined, options: {
     dryRun?: boolean;
     output: string;
@@ -103,6 +104,7 @@ program
     quick?: boolean;
     staged?: boolean;
     jsonStream?: boolean;
+    cache: boolean;
   }) => {
     // Hoist stdinTmpPath so finally block can clean it up (#77)
     let stdinTmpPath: string | undefined;
@@ -230,6 +232,7 @@ program
         ...(!options.discussion && { skipDiscussion: true }),
         ...(options.quick && { skipDiscussion: true, skipHead: true }),
         ...(reviewerSelection && { reviewerSelection }),
+        ...(!options.cache && { noCache: true }),
       };
 
       if (options.verbose) {
@@ -289,6 +292,10 @@ program
 
       const result = await runPipeline(pipelineOptions, progress);
       spinner?.stop();
+
+      if (result.cached && !options.quiet) {
+        console.error('Cache hit — returning previous review result. Use --no-cache to force a fresh review.');
+      }
 
       // Build format options: verbose flag + annotated-specific options
       const formatOpts: Parameters<typeof formatOutput>[2] = {
@@ -856,6 +863,7 @@ Examples:
   ${displayName} review --verbose                   Show full issue details
   ${displayName} review --output json              JSON output for CI
   ${displayName} review --json-stream              Stream NDJSON for CI
+  ${displayName} review --no-cache                 Skip cache, run fresh review
 `);
       break;
     case 'init':
