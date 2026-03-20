@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-rc.3 (2026-03-20)
+
+### Fixes
+- **Build pipeline** — added tsup bundler with workspace resolver plugin. CLI now builds to a single 377KB ESM bundle. Fixes `ERR_MODULE_NOT_FOUND` on `npm i -g` install.
+- **Root dependencies** — 7 new AI SDK packages added to root package.json for npm install compatibility.
+
 ## 2.0.0-rc.2 (2026-03-20)
 
 ### New Providers & Backends
