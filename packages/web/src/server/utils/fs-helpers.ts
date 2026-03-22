@@ -16,6 +16,17 @@ export async function readdirSafe(dirPath: string): Promise<string[]> {
 }
 
 /**
+ * Safely read a text file, returning null on failure.
+ */
+export async function readFileSafe(filePath: string): Promise<string | null> {
+  try {
+    return await readFile(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Safely read and parse a JSON file, returning null on failure.
  */
 export async function readJsonSafe<T>(filePath: string): Promise<T | null> {
