@@ -84,7 +84,10 @@ export function formatProviderList(providers: ProviderInfo[], cliBackends?: Dete
 
     const paddedName = p.name.padEnd(COL_PROVIDER);
     const tierLabel = TIER_LABELS[p.tier].label;
-    const tierCol = (p.tier === 1 ? statusColor.pass(tierLabel) : p.tier === 2 ? tierLabel : dim(tierLabel)).padEnd(COL_TIER);
+    const tierCol = p.tier === 1
+      ? statusColor.pass(tierLabel.padEnd(COL_TIER))
+      : p.tier === 2 ? tierLabel.padEnd(COL_TIER)
+      : dim(tierLabel.padEnd(COL_TIER));
     const keyText = `${p.apiKeySet ? '\u2713' : '\u2717'} ${p.apiKeyEnvVar}`.padEnd(COL_KEY);
     const keyDisplay = p.apiKeySet ? statusColor.pass(keyText) : statusColor.fail(keyText);
     const status = p.apiKeySet ? 'available' : 'no key';
@@ -133,7 +136,10 @@ export function formatCliBackends(backends: DetectedCli[]): string {
     const tier = getCliBackendTier(b.backend);
     const tierLabel = TIER_LABELS[tier].label;
     const nameCol = b.backend.padEnd(COL_NAME);
-    const tierCol = (tier === 1 ? statusColor.pass(tierLabel) : tier === 2 ? tierLabel : dim(tierLabel)).padEnd(COL_TIER);
+    const tierCol = tier === 1
+      ? statusColor.pass(tierLabel.padEnd(COL_TIER))
+      : tier === 2 ? tierLabel.padEnd(COL_TIER)
+      : dim(tierLabel.padEnd(COL_TIER));
     const binaryCol = b.bin.padEnd(COL_BINARY);
     const statusIcon = b.available ? '\u2713' : '\u2717';
     const statusText = b.available ? 'available' : 'not found';

@@ -38,7 +38,7 @@ jobs:
           npm init -y
           npm i $GITHUB_WORKSPACE/codeagora-*.tgz
           npx agora --version
-          npx agora doctor || true
+          npx agora doctor || echo "::warning::doctor check failed (expected without API keys)"
 
       # Publish core package
       - name: Publish codeagora
