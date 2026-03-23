@@ -9,9 +9,9 @@
     { "model_id": "gemma2-9b-it", "name": "Gemma 2 9B", "context": "8k" },
     { "model_id": "mistral-saba-24b", "name": "Mistral Saba 24B", "context": "32k" },
     { "model_id": "qwen-qwq-32b", "name": "QwQ 32B", "context": "128k" },
-    { "model_id": "deepseek-r1-distill-llama-70b", "name": "DeepSeek R1 Distill Llama 70B", "context": "128k" },
-    { "model_id": "qwen-2.5-coder-32b-instruct", "name": "Qwen 2.5 Coder 32B", "context": "128k" },
-    { "model_id": "qwen-2.5-32b-instruct", "name": "Qwen 2.5 32B", "context": "128k" },
-    { "model_id": "allam-2-7b", "name": "ALLaM 2 7B", "context": "4k" }
+    { "model_id": "openai/gpt-oss-20b", "name": "GPT-OSS 20B", "context": "131k" },
+    { "model_id": "openai/gpt-oss-120b", "name": "GPT-OSS 120B", "context": "131k" },
+    { "model_id": "qwen/qwen3-32b", "name": "Qwen3 32B", "context": "131k" },
+    { "model_id": "moonshotai/kimi-k2-instruct-0905", "name": "Kimi K2", "context": "256k" }
   ]
 }

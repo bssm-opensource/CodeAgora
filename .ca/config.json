@@ -30,13 +30,13 @@
       "timeout": 120
     },
     {
-      "id": "r-deepseek",
-      "label": "DeepSeek R1 Distill 70B",
-      "model": "deepseek-r1-distill-llama-70b",
+      "id": "r-llama33",
+      "label": "Llama 3.3 70B",
+      "model": "llama-3.3-70b-versatile",
       "backend": "api",
       "provider": "groq",
       "enabled": true,
-      "timeout": 180
+      "timeout": 120
     },
     {
       "id": "r-llama31",
