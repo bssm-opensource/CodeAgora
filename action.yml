@@ -49,7 +49,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: cd "${{ github.action_path }}" && pnpm install --no-frozen-lockfile
 
     - name: Fetch PR diff
       shell: bash
@@ -66,7 +66,7 @@ runs:
       id: review
       shell: bash
       run: |
-        npx tsx packages/github/src/action.ts \
+        npx tsx "${{ github.action_path }}/packages/github/src/action.ts" \
           --diff /tmp/codeagora-pr.diff \
           --pr "$PR_NUMBER" \
           --sha "$HEAD_SHA" \
