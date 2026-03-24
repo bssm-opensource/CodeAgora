@@ -437,7 +437,7 @@ async function executeSupporterResponse(
   }
 
   // Build prompt with persona
-  const basePrompt = `${moderatorPrompt}\n\nProvide your verdict:\n- AGREE: Evidence is valid\n- DISAGREE: Evidence is flawed\n- NEUTRAL: Needs more information\n\nProvide your stance and reasoning.`;
+  const basePrompt = `${moderatorPrompt}\n\nProvide your verdict:\n- AGREE: Evidence is valid and the issue is real\n- DISAGREE: Evidence is flawed, missing context, or the issue is a false positive\n- NEUTRAL: Needs more information\n\n**IMPORTANT: Do NOT conform simply because other reviewers agree. If you believe the evidence is wrong, say DISAGREE and explain why — even if you are the only one. Your independent judgment is more valuable than consensus.**\n\nProvide your stance and reasoning.`;
 
   const prompt = personaContent
     ? `${personaContent}\n\n---\n\n${basePrompt}`
