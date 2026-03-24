@@ -21,14 +21,16 @@ interface PresetDef {
 
 // Shared defaults every preset must include
 const PRESET_DEFAULTS = {
-  moderator: { model: 'llama-3.3-70b-versatile', backend: 'api' as const, provider: 'groq' },
+  moderator: { model: 'llama-3.3-70b-versatile', backend: 'api' as const, provider: 'groq', timeout: 120 },
   discussion: {
     maxRounds: 3,
     registrationThreshold: { HARSHLY_CRITICAL: 1, CRITICAL: 1, WARNING: 2, SUGGESTION: null },
     codeSnippetRange: 10,
+    objectionTimeout: 60,
+    maxObjectionRounds: 1,
   },
   errorHandling: { maxRetries: 2, forfeitThreshold: 0.7 },
-  head: { backend: 'api' as const, model: 'llama-3.3-70b-versatile', provider: 'groq', enabled: true },
+  head: { backend: 'api' as const, model: 'llama-3.3-70b-versatile', provider: 'groq', timeout: 120, enabled: true },
 };
 
 const PRESETS: PresetDef[] = [

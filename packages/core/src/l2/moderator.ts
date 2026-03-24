@@ -255,7 +255,7 @@ async function runDiscussion(
 
   // Track objection rounds to prevent infinite loops
   let objectionRoundsUsed = 0;
-  const maxObjectionRounds = 1;
+  const maxObjectionRounds = settings.maxObjectionRounds ?? 1;
 
   // Run up to maxRounds
   for (let roundNum = 1; roundNum <= settings.maxRounds; roundNum++) {
@@ -559,7 +559,7 @@ ${rounds.map((r, i) => `Round ${i + 1}:\n${r.supporterResponses.map(s => `- ${s.
     model: config.model,
     provider: config.provider,
     prompt,
-    timeout: 120,
+    timeout: config.timeout ?? 120,
     temperature: 0.2,
   });
 

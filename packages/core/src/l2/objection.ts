@@ -61,7 +61,7 @@ async function executeSupporterObjectionCheck(
     backend: config.backend,
     model: config.model,
     prompt,
-    timeout: 60,
+    timeout: config.timeout ?? 60,
     temperature: config.temperature,
   });
 

@@ -98,6 +98,7 @@ export const ModeratorConfigSchema = z.object({
   backend: BackendSchema,
   model: z.string(),
   provider: z.string().optional(),
+  timeout: z.number().default(120),
 });
 export type ModeratorConfig = z.infer<typeof ModeratorConfigSchema>;
 
@@ -128,6 +129,8 @@ export const DiscussionSettingsSchema = z.object({
     SUGGESTION: z.null(), // Discussion 미등록
   }),
   codeSnippetRange: z.number().default(10), // ±N lines
+  objectionTimeout: z.number().default(60),
+  maxObjectionRounds: z.number().int().min(0).default(1),
 });
 export type DiscussionSettings = z.infer<typeof DiscussionSettingsSchema>;
 
@@ -200,6 +203,7 @@ export const HeadConfigSchema = z.object({
   backend: BackendSchema,
   model: z.string(),
   provider: z.string().optional(),
+  timeout: z.number().default(120),
   enabled: z.boolean().default(true),
 });
 export type HeadConfig = z.infer<typeof HeadConfigSchema>;

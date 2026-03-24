@@ -20,6 +20,8 @@ const defaultSettings: DiscussionSettings = {
   },
   maxRounds: 3,
   codeSnippetRange: 10,
+  objectionTimeout: 60,
+  maxObjectionRounds: 1,
 };
 
 function makeDoc(overrides: Partial<EvidenceDocument> = {}): EvidenceDocument {

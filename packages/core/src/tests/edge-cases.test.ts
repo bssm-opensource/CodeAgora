@@ -265,6 +265,8 @@ describe('runModerator — maxRounds=0 (8)', () => {
         maxRounds: 0,
         registrationThreshold: { HARSHLY_CRITICAL: 1, CRITICAL: 1, WARNING: 2, SUGGESTION: null },
         codeSnippetRange: 10,
+        objectionTimeout: 60,
+        maxObjectionRounds: 1,
       },
       date: '2026-03-21',
       sessionId: '001',

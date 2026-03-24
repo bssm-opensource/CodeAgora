@@ -271,6 +271,7 @@ export function applyMigration(config: Config, result: MigrationResult): Config 
     backend: 'api' as const,
     model: newModerator.model,
     provider: newModerator.provider,
+    timeout: 120,
     enabled: true,
   };
 

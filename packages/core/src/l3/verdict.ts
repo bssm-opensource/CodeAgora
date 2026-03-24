@@ -44,7 +44,7 @@ async function llmVerdict(report: ModeratorReport, config: HeadConfig, language?
     model: config.model,
     provider: config.provider,
     prompt,
-    timeout: 120,
+    timeout: config.timeout ?? 120,
     temperature: 0.2,
   });
 
