@@ -71,12 +71,12 @@ export function ResultsScreen({ result, onHome: _onHome, onViewContext }: Props)
   const summary = result.summary;
   const issues: Issue[] = summary?.topIssues ?? [];
 
-  const { cols } = getTerminalSize();
+  const { cols, rows } = getTerminalSize();
   const totalCols = Math.max(cols, MIN_COLS);
   const listWidth = Math.floor(totalCols * LIST_WIDTH_RATIO);
   const detailWidth = Math.floor(totalCols * DETAIL_WIDTH_RATIO);
-  // List viewport height: rows minus header/footer/border
-  const listHeight = Math.max(6, issues.length);
+  // List viewport height: bounded by terminal rows minus header/footer/border
+  const listHeight = Math.max(6, Math.min(issues.length, rows - 10));
 
   useInput((input, key) => {
     if (viewMode === 'list') {
