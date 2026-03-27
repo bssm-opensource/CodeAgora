@@ -9,6 +9,7 @@ import { Costs } from './pages/Costs.js';
 import { Discussions } from './pages/Discussions.js';
 import { ConfigPage } from './pages/Config.js';
 import { Pipeline } from './pages/Pipeline.js';
+import { NotFound } from './components/NotFound.js';
 
 export function App(): React.JSX.Element {
   return (
@@ -22,6 +23,7 @@ export function App(): React.JSX.Element {
         <Route path="/discussions" element={<Discussions />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="/pipeline" element={<Pipeline />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   );
