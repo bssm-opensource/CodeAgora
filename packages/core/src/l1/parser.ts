@@ -10,7 +10,7 @@ import { fuzzyMatchFilePath } from '@codeagora/shared/utils/diff.js';
 // Evidence Document Parser
 // ============================================================================
 
-const EVIDENCE_BLOCK_REGEX = /## Issue:\s*(.+?)\n[\s\S]*?### 문제\n([\s\S]*?)### 근거\n([\s\S]*?)### 심각도\n([\s\S]*?)### 제안\n([\s\S]*?)(?=\n## Issue:|$)/gi;
+const EVIDENCE_BLOCK_REGEX = /## Issue:\s*(.+?)\n[\s\S]*?### (?:Problem|문제)\n([\s\S]*?)### (?:Evidence|근거)\n([\s\S]*?)### (?:Severity|심각도)\n([\s\S]*?)### (?:Suggestion|제안)\n([\s\S]*?)(?=\n## Issue:|$)/gi;
 
 /**
  * Parse reviewer response into evidence documents
@@ -32,7 +32,8 @@ export function parseEvidenceResponse(
         .filter((line) => line.match(/^\d+\./))
         .map((line) => line.replace(/^\d+\.\s*/, ''));
 
-      let severity = parseSeverity(severityText.trim());
+      const { severity: parsedSeverity, confidence: reviewerConfidence } = parseSeverity(severityText.trim());
+      let severity = parsedSeverity;
       const fileInfo = extractFileInfo(problem, diffFilePaths);
 
       // Escalate severity to CRITICAL minimum when file path is unknown
@@ -51,6 +52,7 @@ export function parseEvidenceResponse(
         suggestion: suggestion.trim(),
         filePath: fileInfo.filePath,
         lineRange: fileInfo.lineRange,
+        ...(reviewerConfidence !== undefined && { confidence: reviewerConfidence }),
       });
     } catch (_error) {
       // Skip malformed evidence blocks
@@ -78,19 +80,29 @@ export function parseEvidenceResponse(
 // Helpers
 // ============================================================================
 
-function parseSeverity(severityText: string): Severity {
+interface SeverityResult {
+  severity: Severity;
+  confidence?: number;
+}
+
+function parseSeverity(severityText: string): SeverityResult {
   const normalized = severityText.toUpperCase().trim();
 
+  const confidenceMatch = severityText.match(/\((\d+)%\)/);
+  const confidence = confidenceMatch ? parseInt(confidenceMatch[1], 10) : undefined;
+
+  let severity: Severity;
   if (normalized.includes('HARSHLY_CRITICAL') || normalized.includes('HARSHLY CRITICAL')) {
-    return 'HARSHLY_CRITICAL';
+    severity = 'HARSHLY_CRITICAL';
+  } else if (normalized.includes('CRITICAL')) {
+    severity = 'CRITICAL';
+  } else if (normalized.includes('WARNING')) {
+    severity = 'WARNING';
+  } else {
+    severity = 'SUGGESTION';
   }
-  if (normalized.includes('CRITICAL')) {
-    return 'CRITICAL';
-  }
-  if (normalized.includes('WARNING')) {
-    return 'WARNING';
-  }
-  return 'SUGGESTION';
+
+  return { severity, confidence };
 }
 
 function extractFileInfo(

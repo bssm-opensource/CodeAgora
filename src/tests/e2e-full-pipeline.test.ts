@@ -111,7 +111,7 @@ function buildQuickConfig() {
     ...base,
     discussion: {
       ...base.discussion,
-      maxRounds: 0,
+      enabled: false,
     },
   };
 }

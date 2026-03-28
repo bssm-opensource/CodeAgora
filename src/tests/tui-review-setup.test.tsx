@@ -48,7 +48,7 @@ function makeConfig(reviewers: AgentConfig[]) {
       personaAssignment: 'random',
     },
     moderator: { model: 'test-model', backend: 'api' as const, provider: 'groq' },
-    discussion: { maxRounds: 0, registrationThreshold: {}, codeSnippetRange: 10 },
+    discussion: { enabled: false, maxRounds: 3, registrationThreshold: {}, codeSnippetRange: 10 },
     errorHandling: { maxRetries: 2, forfeitThreshold: 0.7 },
     output: { format: 'text' as const },
   };

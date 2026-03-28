@@ -22,7 +22,12 @@ export function computeL1Confidence(
     d.filePath === doc.filePath &&
     Math.abs(d.lineRange[0] - doc.lineRange[0]) <= 5
   ).length;
-  return Math.round((agreeing / totalReviewers) * 100);
+  const agreementRate = Math.round((agreeing / totalReviewers) * 100);
+
+  if (doc.confidence !== undefined && doc.confidence >= 0 && doc.confidence <= 100) {
+    return Math.round(doc.confidence * 0.6 + agreementRate * 0.4);
+  }
+  return agreementRate;
 }
 
 /**

@@ -562,9 +562,9 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
 
     let moderatorReport: ModeratorReport;
 
-    if (input.skipDiscussion) {
+    if (input.skipDiscussion || config.discussion?.enabled === false) {
       // Skip L2 — treat all issues as unconfirmed
-      logger.info('Discussion skipped (--no-discussion)');
+      logger.info(input.skipDiscussion ? 'Discussion skipped (--no-discussion)' : 'Discussion skipped (enabled: false)');
       moderatorReport = {
         discussions: [],
         roundsPerDiscussion: {},

@@ -262,6 +262,7 @@ describe('runModerator — maxRounds=0 (8)', () => {
       supporterPoolConfig,
       discussions: [discussion],
       settings: {
+        enabled: true,
         maxRounds: 0,
         registrationThreshold: { HARSHLY_CRITICAL: 1, CRITICAL: 1, WARNING: 2, SUGGESTION: null },
         codeSnippetRange: 10,

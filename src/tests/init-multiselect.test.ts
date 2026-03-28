@@ -380,7 +380,7 @@ describe('buildMultiProviderConfig()', () => {
     expect(config.discussion.maxRounds).toBeGreaterThan(0);
   });
 
-  it('sets discussion maxRounds to 0 when discussion is false', () => {
+  it('sets discussion enabled to false when discussion is false', () => {
     const config = buildMultiProviderConfig({
       selections: [
         { provider: 'groq', model: 'llama-3.3-70b-versatile', backend: 'api' },
@@ -389,7 +389,8 @@ describe('buildMultiProviderConfig()', () => {
       discussion: false,
     });
 
-    expect(config.discussion.maxRounds).toBe(0);
+    expect((config.discussion as Record<string, unknown>)['enabled']).toBe(false);
+    expect(config.discussion.maxRounds).toBeGreaterThanOrEqual(1);
   });
 
   it('includes errorHandling defaults', () => {

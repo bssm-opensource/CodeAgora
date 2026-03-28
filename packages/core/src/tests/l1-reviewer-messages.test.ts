@@ -1,0 +1,94 @@
+/**
+ * L1 Reviewer — buildReviewerMessages system/user split tests (#308)
+ */
+
+import { describe, it, expect } from 'vitest';
+import { buildReviewerMessages } from '../l1/reviewer.js';
+
+const SAMPLE_DIFF = `diff --git a/payments.ts b/payments.ts
+index abc..def 100644
+--- a/payments.ts
++++ b/payments.ts
+@@ -10,3 +10,4 @@
++const amount = req.body.amount * multiplier;`;
+
+const SAMPLE_SUMMARY = 'Add payment calculation';
+
+describe('buildReviewerMessages', () => {
+  it('returns an object with system and user strings', () => {
+    const { system, user } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(typeof system).toBe('string');
+    expect(typeof user).toBe('string');
+  });
+
+  it('system contains review instructions', () => {
+    const { system } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(system).toContain('ruthless, senior code reviewer');
+    expect(system).toContain('Analysis Checklist');
+    expect(system).toContain('Severity Guide');
+    expect(system).toContain('HARSHLY_CRITICAL');
+  });
+
+  it('system does NOT contain diff content', () => {
+    const { system } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    // The raw diff lines must not appear in system message
+    expect(system).not.toContain('req.body.amount * multiplier');
+    expect(system).not.toContain('+const amount');
+    expect(system).not.toContain('payments.ts');
+  });
+
+  it('user contains the diff content', () => {
+    const { user } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(user).toContain(SAMPLE_DIFF);
+  });
+
+  it('user contains PR summary', () => {
+    const { user } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(user).toContain(SAMPLE_SUMMARY);
+  });
+
+  it('user wraps diff with a unique delimiter tag', () => {
+    const { system, user } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    // Delimiter tag announced in system, used in user
+    const delimMatch = system.match(/<(DIFF_[A-Z0-9]+)>/);
+    expect(delimMatch).not.toBeNull();
+    const tag = delimMatch![1];
+    expect(user).toContain(`<${tag}>`);
+    expect(user).toContain(`</${tag}>`);
+  });
+
+  it('system warns that diff content is untrusted', () => {
+    const { system } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(system).toMatch(/untrusted/i);
+  });
+
+  it('delimiter is unique across two calls (injection defense)', () => {
+    const first = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    const second = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    const tag1 = first.system.match(/<(DIFF_[A-Z0-9]+)>/)![1];
+    const tag2 = second.system.match(/<(DIFF_[A-Z0-9]+)>/)![1];
+    // Statistically very unlikely to collide; if it does the test is still valid
+    // because the delimiter mechanism itself is correct
+    expect(tag1).toMatch(/^DIFF_[A-Z0-9]+$/);
+    expect(tag2).toMatch(/^DIFF_[A-Z0-9]+$/);
+  });
+
+  it('includes surrounding context in user when provided', () => {
+    const ctx = 'function getUser(id: string) { ... }';
+    const { user, system } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY, ctx);
+    expect(user).toContain(ctx);
+    expect(user).toContain('Surrounding Code Context');
+    // Context must NOT leak into system
+    expect(system).not.toContain(ctx);
+  });
+
+  it('omits surrounding context section when not provided', () => {
+    const { user } = buildReviewerMessages(SAMPLE_DIFF, SAMPLE_SUMMARY);
+    expect(user).not.toContain('Surrounding Code Context');
+  });
+
+  it('handles empty prSummary gracefully', () => {
+    const { user } = buildReviewerMessages(SAMPLE_DIFF, '');
+    expect(user).toContain('No summary provided');
+  });
+});

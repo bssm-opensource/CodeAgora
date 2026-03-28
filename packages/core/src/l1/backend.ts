@@ -16,6 +16,10 @@ export interface BackendInput {
   model: string;
   provider?: string;
   prompt: string;
+  /** System instructions — used by API backend only (split system/user message). */
+  systemPrompt?: string;
+  /** User message content — used by API backend only (split system/user message). */
+  userPrompt?: string;
   timeout: number;
   signal?: AbortSignal;
   temperature?: number;

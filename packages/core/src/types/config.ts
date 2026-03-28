@@ -121,7 +121,8 @@ export type SupporterPoolConfig = z.infer<typeof SupporterPoolConfigSchema>;
 // ============================================================================
 
 export const DiscussionSettingsSchema = z.object({
-  maxRounds: z.number().default(3),
+  enabled: z.boolean().default(true),
+  maxRounds: z.number().int().min(1).default(3),
   registrationThreshold: z.object({
     HARSHLY_CRITICAL: z.number().default(1), // 1명 → 즉시 등록
     CRITICAL: z.number().default(1), // 1명 + 서포터 1명

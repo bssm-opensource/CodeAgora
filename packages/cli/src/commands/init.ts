@@ -55,7 +55,7 @@ export interface GeneratedConfig {
   reviewers: AgentEntry[];
   supporters: { pool: AgentEntry[]; pickCount: number; pickStrategy: string; devilsAdvocate: AgentEntry; personaPool: string[]; personaAssignment: string };
   moderator: { model: string; backend: string; provider: string };
-  discussion: { maxRounds: number; registrationThreshold: Record<string, number | null>; codeSnippetRange: number };
+  discussion: { enabled: boolean; maxRounds: number; registrationThreshold: Record<string, number | null>; codeSnippetRange: number };
   errorHandling: { maxRetries: number; forfeitThreshold: number };
   [key: string]: unknown;
 }
@@ -239,7 +239,8 @@ export function buildCustomConfig(params: CustomConfigParams): GeneratedConfig {
       enabled: true,
     },
     discussion: {
-      maxRounds: discussion ? preset.maxRounds : 0,
+      enabled: discussion !== false,
+      maxRounds: preset.maxRounds,
       registrationThreshold: preset.registrationThreshold,
       codeSnippetRange: 10,
     },
@@ -325,7 +326,8 @@ export function buildMultiProviderConfig(params: MultiProviderConfigParams): Gen
       enabled: true,
     },
     discussion: {
-      maxRounds: discussion ? preset.maxRounds : 0,
+      enabled: discussion !== false,
+      maxRounds: preset.maxRounds,
       registrationThreshold: preset.registrationThreshold,
       codeSnippetRange: 10,
     },

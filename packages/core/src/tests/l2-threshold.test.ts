@@ -12,6 +12,7 @@ import type { DiscussionSettings } from '../types/config.js';
 // ============================================================================
 
 const defaultSettings: DiscussionSettings = {
+  enabled: true,
   registrationThreshold: {
     HARSHLY_CRITICAL: 1,
     CRITICAL: 1,

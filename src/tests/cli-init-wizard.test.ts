@@ -108,7 +108,7 @@ describe('buildCustomConfig()', () => {
     expect(discussion['maxRounds']).toBe(4);
   });
 
-  it('sets discussion maxRounds to 0 when discussion is disabled', () => {
+  it('sets discussion enabled to false when discussion is disabled', () => {
     const config = buildCustomConfig({
       provider: 'groq',
       model: 'llama-3.3-70b-versatile',
@@ -117,7 +117,8 @@ describe('buildCustomConfig()', () => {
     }) as Record<string, unknown>;
 
     const discussion = config['discussion'] as Record<string, unknown>;
-    expect(discussion['maxRounds']).toBe(0);
+    expect(discussion['enabled']).toBe(false);
+    expect(discussion['maxRounds']).toBeGreaterThanOrEqual(1);
   });
 
   it('includes registrationThreshold defaults regardless of discussion flag', () => {

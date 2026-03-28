@@ -126,24 +126,35 @@ describe('buildMultiProviderConfig()', () => {
     expect(supporterPool[0]?.provider).toBe('groq');
   });
 
-  it('sets discussion maxRounds to 0 when discussion=false', () => {
+  it('sets discussion.enabled to false when discussion=false', () => {
     const params: MultiProviderConfigParams = {
       selections: [makeSelection('groq', 'model-a')],
       reviewerCount: 1,
       discussion: false,
     };
     const config = buildMultiProviderConfig(params);
-    expect(config.discussion.maxRounds).toBe(0);
+    expect(config.discussion.enabled).toBe(false);
   });
 
-  it('sets discussion maxRounds > 0 when discussion=true', () => {
+  it('sets discussion.enabled to true and maxRounds > 0 when discussion=true', () => {
     const params: MultiProviderConfigParams = {
       selections: [makeSelection('groq', 'model-a')],
       reviewerCount: 1,
       discussion: true,
     };
     const config = buildMultiProviderConfig(params);
+    expect(config.discussion.enabled).toBe(true);
     expect(config.discussion.maxRounds).toBeGreaterThan(0);
+  });
+
+  it('always sets a valid maxRounds (>= 1) regardless of discussion flag', () => {
+    const params: MultiProviderConfigParams = {
+      selections: [makeSelection('groq', 'model-a')],
+      reviewerCount: 1,
+      discussion: false,
+    };
+    const config = buildMultiProviderConfig(params);
+    expect(config.discussion.maxRounds).toBeGreaterThanOrEqual(1);
   });
 
   it('throws when reviewerCount is 0', () => {
