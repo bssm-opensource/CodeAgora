@@ -17,10 +17,10 @@ const STANCE_CLASSES: Record<string, string> = {
 };
 
 const SEVERITY_CLASSES: Record<string, string> = {
+  HARSHLY_CRITICAL: 'severity--harshly-critical',
   CRITICAL: 'severity--critical',
-  ERROR: 'severity--error',
   WARNING: 'severity--warning',
-  INFO: 'severity--info',
+  SUGGESTION: 'severity--suggestion',
 };
 
 function getSeverityClass(severity: string): string {
