@@ -58167,50 +58167,50 @@ function buildCommand(input) {
     case "copilot":
       return {
         bin: "copilot",
-        args: ["-p", input.prompt, "-s", "--allow-all", "--model", validateArg(model, "model")],
-        useStdin: false
+        args: ["-s", "--allow-all", "--model", validateArg(model, "model")],
+        useStdin: true
       };
     case "aider":
       return {
         bin: "aider",
-        args: ["--message", input.prompt, "--yes-always", "--no-auto-commits"],
-        useStdin: false
+        args: ["--yes-always", "--no-auto-commits"],
+        useStdin: true
       };
     case "goose":
       return {
         bin: "goose",
-        args: ["run", "-t", input.prompt, "--no-session"],
-        useStdin: false
+        args: ["run", "--no-session"],
+        useStdin: true
       };
     case "cline":
       return {
         bin: "cline",
-        args: ["-y", input.prompt],
-        useStdin: false
+        args: ["-y"],
+        useStdin: true
       };
     case "qwen-code":
       return {
         bin: "qwen",
-        args: ["-p", input.prompt],
-        useStdin: false
+        args: [],
+        useStdin: true
       };
     case "vibe":
       return {
         bin: "vibe",
-        args: ["--prompt", input.prompt],
-        useStdin: false
+        args: [],
+        useStdin: true
       };
     case "kiro":
       return {
         bin: "kiro-cli",
-        args: ["chat", "--no-interactive", "--trust-all-tools", input.prompt],
-        useStdin: false
+        args: ["chat", "--no-interactive", "--trust-all-tools"],
+        useStdin: true
       };
     case "cursor":
       return {
         bin: "agent",
-        args: ["-p", input.prompt],
-        useStdin: false
+        args: [],
+        useStdin: true
       };
     default:
       throw new Error(`Unsupported CLI backend: ${backend}`);
@@ -58449,35 +58449,16 @@ var init_objection = __esm({
   }
 });
 
-// packages/core/src/types/core.ts
+// packages/shared/src/types/result.ts
 function ok(data) {
   return { success: true, data };
 }
 function err(error40) {
   return { success: false, error: error40 };
 }
-var SeveritySchema, SEVERITY_ORDER, EvidenceDocumentSchema;
-var init_core3 = __esm({
-  "packages/core/src/types/core.ts"() {
-    init_zod();
-    SeveritySchema = external_exports.enum([
-      "HARSHLY_CRITICAL",
-      "CRITICAL",
-      "WARNING",
-      "SUGGESTION"
-    ]);
-    SEVERITY_ORDER = ["HARSHLY_CRITICAL", "CRITICAL", "WARNING", "SUGGESTION"];
-    EvidenceDocumentSchema = external_exports.object({
-      issueTitle: external_exports.string(),
-      problem: external_exports.string(),
-      evidence: external_exports.array(external_exports.string()),
-      severity: SeveritySchema,
-      suggestion: external_exports.string(),
-      filePath: external_exports.string(),
-      lineRange: external_exports.tuple([external_exports.number(), external_exports.number()]),
-      source: external_exports.enum(["llm", "rule"]).optional(),
-      confidence: external_exports.number().min(0).max(100).optional()
-    });
+var init_result = __esm({
+  "packages/shared/src/types/result.ts"() {
+    "use strict";
   }
 });
 
@@ -58514,7 +58495,7 @@ function validateDiffPath(diffPath, options) {
 }
 var init_path_validation = __esm({
   "packages/shared/src/utils/path-validation.ts"() {
-    init_core3();
+    init_result();
   }
 });
 
@@ -59184,7 +59165,10 @@ async function saveCredential(key, value) {
     lines = existing.split("\n");
   } catch {
   }
-  const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
+  const idx = lines.findIndex((l) => {
+    const eqIdx = l.indexOf("=");
+    return eqIdx >= 0 && l.slice(0, eqIdx).trim() === key;
+  });
   if (idx >= 0) {
     lines[idx] = `${key}=${sanitized}`;
   } else {
@@ -59322,6 +59306,7 @@ var require_fast_content_type_parse = __commonJS({
 });
 
 // packages/github/src/action.ts
+import crypto2 from "crypto";
 import fs7 from "fs/promises";
 import { appendFileSync } from "fs";
 
@@ -59812,6 +59797,9 @@ function deriveGroupName(files) {
   }
   return files[0].split("/")[0] || "root";
 }
+
+// packages/core/src/l1/reviewer.ts
+import crypto from "crypto";
 
 // packages/shared/src/utils/diff.ts
 import fsPromises from "fs/promises";
@@ -60524,7 +60512,8 @@ function checkForfeitThreshold(results, threshold = 0.7) {
   };
 }
 function buildReviewerMessages(diffContent, prSummary, surroundingContext) {
-  const delimiter = `DIFF_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  const delimiter = `DIFF_${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+  const safeDiffContent = diffContent.replace(/`{3,}/g, (m) => m.replace(/`/g, "`"));
   const system = `You are a ruthless, senior code reviewer. Your job is to find **real bugs, security holes, and logic errors** that will break production. This code WILL be deployed if you don't catch the problems. Be thorough. Be aggressive. Miss nothing.
 
 ## Analysis Checklist
@@ -60668,7 +60657,7 @@ ${contextSection}
 
 <${delimiter}>
 \`\`\`diff
-${diffContent}
+${safeDiffContent}
 \`\`\`
 </${delimiter}>
 
@@ -61134,7 +61123,7 @@ function globToRegex(pattern) {
       regex += "\\.";
       i += 1;
     } else {
-      regex += char.replace(/[+()[\]{}^$|\\]/g, "\\$&");
+      regex += char.replace(/[\\^$.|+()[\]{}]/g, "\\$&");
       i += 1;
     }
   }
@@ -62091,8 +62080,26 @@ function parseContextK(size) {
   return Math.round(n);
 }
 
-// packages/core/src/pipeline/orchestrator.ts
-init_core3();
+// packages/core/src/types/core.ts
+init_zod();
+var SeveritySchema = external_exports.enum([
+  "HARSHLY_CRITICAL",
+  "CRITICAL",
+  "WARNING",
+  "SUGGESTION"
+]);
+var SEVERITY_ORDER = ["HARSHLY_CRITICAL", "CRITICAL", "WARNING", "SUGGESTION"];
+var EvidenceDocumentSchema = external_exports.object({
+  issueTitle: external_exports.string(),
+  problem: external_exports.string(),
+  evidence: external_exports.array(external_exports.string()),
+  severity: SeveritySchema,
+  suggestion: external_exports.string(),
+  filePath: external_exports.string(),
+  lineRange: external_exports.tuple([external_exports.number(), external_exports.number()]),
+  source: external_exports.enum(["llm", "rule"]).optional(),
+  confidence: external_exports.number().min(0).max(100).optional()
+});
 
 // packages/shared/src/utils/concurrency.ts
 function pLimit(concurrency) {
@@ -62272,7 +62279,6 @@ function getConfidenceBadge(confidence) {
 
 // packages/core/src/learning/store.ts
 init_zod();
-init_core3();
 import fs3 from "fs/promises";
 import path11 from "path";
 var DismissedPatternSchema = external_exports.object({
@@ -62298,7 +62304,6 @@ async function loadLearnedPatterns(projectRoot) {
 }
 
 // packages/core/src/learning/filter.ts
-init_core3();
 function applyLearnedPatterns(evidenceDocs, patterns, threshold = 3) {
   const filtered = [];
   const downgraded = [];
@@ -62329,7 +62334,6 @@ import path12 from "path";
 
 // packages/core/src/rules/types.ts
 init_zod();
-init_core3();
 var RuleSchema = external_exports.object({
   id: external_exports.string(),
   pattern: external_exports.string(),
@@ -63388,7 +63392,6 @@ function resolveLineRange(index, filePath, lineRange) {
 }
 
 // packages/github/src/mapper.ts
-init_core3();
 var MARKER = "<!-- codeagora-v3 -->";
 function truncateResponse(text2, maxLen) {
   const clean = text2.replace(/\n/g, " ").trim();
@@ -67339,6 +67342,7 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 );
 
 // packages/github/src/client.ts
+init_path_validation();
 import { createAppAuth } from "@octokit/auth-app";
 import { readFileSync } from "fs";
 function createOctokit(config2) {
@@ -67354,8 +67358,14 @@ async function createAppOctokit(owner, repo) {
     privateKey = privateKeyRaw;
   } else if (privateKeyPath) {
     try {
-      const resolvedPath = privateKeyPath.replace(/^~/, process.env["HOME"] ?? "");
-      privateKey = readFileSync(resolvedPath, "utf-8");
+      const expandedPath = privateKeyPath.replace(/^~/, process.env["HOME"] ?? "");
+      const allowedRoots = [process.env["HOME"] ?? "", process.cwd()].filter(Boolean);
+      const validation = validateDiffPath(expandedPath, { allowedRoots });
+      if (!validation.success) {
+        console.warn("[GitHub App] Private key path is outside allowed directories");
+        return null;
+      }
+      privateKey = readFileSync(validation.data, "utf-8");
     } catch {
       console.warn("[GitHub App] Failed to read private key from path");
       return null;
@@ -67749,7 +67759,7 @@ function setActionOutput(name25, value) {
   const outputFile = process.env["GITHUB_OUTPUT"];
   if (outputFile) {
     if (value.includes("\n")) {
-      const delimiter = `EOF_${Date.now()}`;
+      const delimiter = `EOF_${crypto2.randomBytes(16).toString("hex")}`;
       appendFileSync(outputFile, `${name25}<<${delimiter}
 ${value}
 ${delimiter}
