@@ -12,7 +12,7 @@ import {
   loadLearnedPatterns,
   saveLearnedPatterns,
   mergePatterns,
-  type LearnedPatterns,
+  LearnedPatternsSchema,
 } from '@codeagora/core/learning/store.js';
 import { parseGitRemote } from '@codeagora/github/client.js';
 import { execFile } from 'child_process';
@@ -257,12 +257,13 @@ export function registerLearnCommand(program: Command): void {
       try {
         const filePath = path.resolve(file);
         const raw = await fs.readFile(filePath, 'utf-8');
-        const imported = JSON.parse(raw) as LearnedPatterns;
-
-        if (!imported.dismissedPatterns || !Array.isArray(imported.dismissedPatterns)) {
+        const parseResult = LearnedPatternsSchema.safeParse(JSON.parse(raw));
+        if (!parseResult.success) {
           console.error(t('cli.learn.error.invalidPatternsFile'));
+          console.error(parseResult.error.message);
           process.exit(1);
         }
+        const imported = parseResult.data;
 
         const existing = await loadLearnedPatterns(process.cwd());
         const merged = mergePatterns(
