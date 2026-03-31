@@ -106,6 +106,17 @@ export async function executeReviewer(
       // Parse response into evidence documents with diff file paths for fallback
       const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
 
+      // Log parse result per model for failure rate tracking (#309)
+      if (evidenceDocs.length === 0 && response.length > 0) {
+        process.stderr.write(
+          `[Parser] Parse returned 0 issues for model=${config.model} reviewer=${config.id} (response length=${response.length}). Possible unparseable response.\n`
+        );
+      } else {
+        process.stderr.write(
+          `[Parser] Parsed ${evidenceDocs.length} issue(s) from model=${config.model} reviewer=${config.id}\n`
+        );
+      }
+
       return {
         reviewerId: config.id,
         model: config.model,
@@ -140,6 +151,17 @@ export async function executeReviewer(
       });
 
       const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
+
+      // Log parse result for fallback model (#309)
+      if (evidenceDocs.length === 0 && response.length > 0) {
+        process.stderr.write(
+          `[Parser] Parse returned 0 issues for fallback model=${fb.model} reviewer=${config.id} (response length=${response.length}). Possible unparseable response.\n`
+        );
+      } else {
+        process.stderr.write(
+          `[Parser] Parsed ${evidenceDocs.length} issue(s) from fallback model=${fb.model} reviewer=${config.id}\n`
+        );
+      }
 
       return {
         reviewerId: config.id,
@@ -308,6 +330,17 @@ async function executeReviewerWithGuards(
       if (useGuards) cb.recordSuccess(provider!, config.model);
       const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
 
+      // Log parse result per model for failure rate tracking (#309)
+      if (evidenceDocs.length === 0 && response.length > 0) {
+        process.stderr.write(
+          `[Parser] Parse returned 0 issues for model=${config.model} reviewer=${config.id} (response length=${response.length}). Possible unparseable response.\n`
+        );
+      } else {
+        process.stderr.write(
+          `[Parser] Parsed ${evidenceDocs.length} issue(s) from model=${config.model} reviewer=${config.id}\n`
+        );
+      }
+
       return {
         reviewerId: config.id,
         model: config.model,
@@ -358,6 +391,17 @@ async function executeReviewerWithGuards(
 
       if (useFallbackGuards) cb.recordSuccess(fallbackProvider!, fb.model);
       const evidenceDocs = parseEvidenceResponse(response, diffFilePaths);
+
+      // Log parse result for fallback model (#309)
+      if (evidenceDocs.length === 0 && response.length > 0) {
+        process.stderr.write(
+          `[Parser] Parse returned 0 issues for fallback model=${fb.model} reviewer=${config.id} (response length=${response.length}). Possible unparseable response.\n`
+        );
+      } else {
+        process.stderr.write(
+          `[Parser] Parsed ${evidenceDocs.length} issue(s) from fallback model=${fb.model} reviewer=${config.id}\n`
+        );
+      }
 
       return {
         reviewerId: config.id,
