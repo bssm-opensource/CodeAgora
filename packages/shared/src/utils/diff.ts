@@ -5,6 +5,10 @@
 import fsPromises from 'fs/promises';
 import path from 'path';
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // ============================================================================
 // Diff File Range Parsing (Context-Aware Review)
 // ============================================================================
@@ -174,6 +178,14 @@ export function extractFileListFromDiff(diffContent: string): string[] {
     }
   }
 
+  // Fallback: parse +++ b/ lines for bare unified diffs without diff --git headers
+  if (files.length === 0) {
+    const plusMatches = diffContent.matchAll(/^\+\+\+ b\/(.+)$/gm);
+    for (const m of plusMatches) {
+      files.push(m[1]);
+    }
+  }
+
   return files;
 }
 
@@ -198,13 +210,15 @@ export function fuzzyMatchFilePath(
     if (exact) return exact;
   }
 
-  // Try partial match (filename without extension)
+  // Try partial match using path-segment boundary to avoid false positives
   for (const filename of matches) {
     const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
-    const partial = filePaths.find((path) =>
-      path.toLowerCase().includes(nameWithoutExt.toLowerCase())
+    const segmentRegex = new RegExp(
+      `(?:^|/)${escapeRegExp(nameWithoutExt)}(?:\\.[^/]*)?$`,
+      'i'
     );
-    if (partial) return partial;
+    const candidates = filePaths.filter((p) => segmentRegex.test(p));
+    if (candidates.length === 1) return candidates[0];
   }
 
   return null;

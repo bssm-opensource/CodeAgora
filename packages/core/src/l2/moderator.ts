@@ -437,7 +437,7 @@ async function executeSupporterResponse(
   }
 
   // Build prompt with persona
-  const basePrompt = `${moderatorPrompt}\n\nProvide your verdict:\n- AGREE: Evidence is valid and the issue is real\n- DISAGREE: Evidence is flawed, missing context, or the issue is a false positive\n- NEUTRAL: Needs more information\n\n**IMPORTANT: Do NOT conform simply because other reviewers agree. If you believe the evidence is wrong, say DISAGREE and explain why — even if you are the only one. Your independent judgment is more valuable than consensus.**\n\nProvide your stance and reasoning.`;
+  const basePrompt = `${moderatorPrompt}\n\nProvide your verdict:\n- AGREE: Evidence is valid and the issue is real\n- DISAGREE: Evidence is flawed, missing context, or the issue is a false positive\n- NEUTRAL: Needs more information\n\n**IMPORTANT: Do NOT conform simply because other reviewers agree. If you believe the evidence is wrong, say DISAGREE and explain why — even if you are the only one. Your independent judgment is more valuable than consensus.**\n\n**Response format — first line MUST be exactly one of:**\nStance: AGREE\nStance: DISAGREE\nStance: NEUTRAL\n\nThen provide your reasoning below.\n\nExample:\nStance: DISAGREE\nThe evidence cites line 42 but the actual vulnerability is mitigated by the input sanitizer at line 38.`;
 
   const prompt = personaContent
     ? `${personaContent}\n\n---\n\n${basePrompt}`
