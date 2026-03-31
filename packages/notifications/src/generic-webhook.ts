@@ -43,6 +43,24 @@ export async function sendGenericWebhook(
     return;
   }
 
+  // Block private/loopback/link-local hostnames to prevent SSRF
+  const hostname = parsed.hostname.toLowerCase();
+  const isPrivateHost =
+    hostname === 'localhost' ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^169\.254\./.test(hostname) ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.localhost');
+  if (isPrivateHost) {
+    process.stderr.write(`[codeagora] Generic webhook: private/internal hosts not allowed\n`);
+    return;
+  }
+
   const body = JSON.stringify({ event, timestamp: Date.now(), data: payload });
 
   // HMAC-SHA256 signature

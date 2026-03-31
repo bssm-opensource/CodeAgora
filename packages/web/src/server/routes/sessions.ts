@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import path from 'path';
 import type { SessionMetadata } from '@codeagora/core/types/core.js';
 import { readJsonSafe, readFileSafe, readdirSafe } from '../utils/fs-helpers.js';
+import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
 
 const CA_ROOT = '.ca';
 
@@ -65,10 +66,15 @@ sessionRoutes.get('/:date/:id', async (c) => {
   const verdict = await readJsonSafe(path.join(sessionDir, 'head-verdict.json'))
     ?? await readJsonSafe(path.join(sessionDir, 'verdict.json'));
 
-  // Load diff content if metadata has diffPath
+  // Load diff content if metadata has diffPath — validate to prevent path traversal
   let diff = '';
   if (metadata.diffPath) {
-    diff = await readFileSafe(metadata.diffPath) ?? '';
+    const validation = validateDiffPath(metadata.diffPath, {
+      allowedRoots: [path.resolve(CA_ROOT), path.resolve(process.cwd())],
+    });
+    if (validation.success) {
+      diff = await readFileSafe(validation.data) ?? '';
+    }
   }
 
   return c.json({ metadata, reviews, discussions, rounds, verdict, diff });

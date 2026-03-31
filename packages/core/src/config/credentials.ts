@@ -61,7 +61,10 @@ export async function saveCredential(key: string, value: string): Promise<void> 
     // File doesn't exist yet — start with empty lines
   }
 
-  const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
+  const idx = lines.findIndex((l) => {
+    const eqIdx = l.indexOf('=');
+    return eqIdx >= 0 && l.slice(0, eqIdx).trim() === key;
+  });
   if (idx >= 0) {
     lines[idx] = `${key}=${sanitized}`;
   } else {

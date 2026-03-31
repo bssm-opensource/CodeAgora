@@ -6,6 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
 
 // ============================================================================
 // Types
@@ -306,14 +307,10 @@ export async function showSession(
   const date = parts[0];
   const sessionId = parts[1];
 
-  // Prevent path traversal
-  if (date.includes('..') || sessionId.includes('..')) {
-    throw new Error(`Invalid session path: "${sessionPath}". Path traversal not allowed.`);
-  }
-
-  const dirPath = path.join(baseDir, '.ca', 'sessions', date, sessionId);
-  const expectedPrefix = path.resolve(path.join(baseDir, '.ca', 'sessions'));
-  if (!path.resolve(dirPath).startsWith(expectedPrefix + path.sep)) {
+  const allowedRoot = path.join(baseDir, '.ca', 'sessions');
+  const dirPath = path.join(allowedRoot, date, sessionId);
+  const validation = validateDiffPath(dirPath, { allowedRoots: [allowedRoot] });
+  if (!validation.success) {
     throw new Error(`Invalid session path: "${sessionPath}".`);
   }
 

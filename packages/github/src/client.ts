@@ -4,6 +4,7 @@
  * Supports both PAT and GitHub App authentication.
  */
 
+import path from 'path';
 import { Octokit } from '@octokit/rest';
 import { createAppAuth } from '@octokit/auth-app';
 import { readFileSync } from 'fs';
@@ -32,7 +33,19 @@ export async function createAppOctokit(owner: string, repo: string): Promise<Oct
     privateKey = privateKeyRaw;
   } else if (privateKeyPath) {
     try {
-      const resolvedPath = privateKeyPath.replace(/^~/, process.env['HOME'] ?? '');
+      const expandedPath = privateKeyPath.replace(/^~/, process.env['HOME'] ?? '');
+      const resolvedPath = path.resolve(expandedPath);
+      // Reject path traversal — key must be under home directory or current working directory
+      const allowedRoots = [process.env['HOME'] ?? '', process.cwd()].filter(Boolean);
+      const isAllowed = allowedRoots.some(
+        (root) =>
+          resolvedPath === path.resolve(root) ||
+          resolvedPath.startsWith(path.resolve(root) + path.sep),
+      );
+      if (!isAllowed || resolvedPath.includes('..')) {
+        console.warn('[GitHub App] Private key path is outside allowed directories');
+        return null;
+      }
       privateKey = readFileSync(resolvedPath, 'utf-8');
     } catch {
       console.warn('[GitHub App] Failed to read private key from path');

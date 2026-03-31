@@ -8,6 +8,23 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import { t } from '@codeagora/shared/i18n/index.js';
 
+// Known safe editor binaries
+const SAFE_EDITORS = new Set([
+  'vi', 'vim', 'nvim', 'nano', 'emacs', 'pico', 'joe', 'jed',
+  'code', 'code-insiders', 'subl', 'atom', 'gedit', 'kate', 'kwrite',
+  'notepad', 'notepad++', 'wordpad',
+]);
+
+function resolveEditor(raw: string): string {
+  // Extract just the binary name (no args, no path traversal)
+  const binaryName = path.basename(raw.split(/\s+/)[0]!);
+  if (SAFE_EDITORS.has(binaryName)) return binaryName;
+  process.stderr.write(
+    `[codeagora] Editor "${binaryName}" is not in the allowlist. Falling back to vi.\n`,
+  );
+  return 'vi';
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -97,7 +114,8 @@ export async function editConfig(baseDir: string): Promise<void> {
     throw new Error(t('cli.config.notFound', { cmd: 'agora' }));
   }
 
-  const editor = process.env['VISUAL'] || process.env['EDITOR'] || 'vi';
+  const rawEditor = process.env['VISUAL'] || process.env['EDITOR'] || 'vi';
+  const editor = resolveEditor(rawEditor);
   const result = spawnSync(editor, [configPath], { stdio: 'inherit' });
 
   if (result.error) {

@@ -11,7 +11,13 @@ export function registerReviewPr(server: McpServer): void {
     'review_pr',
     'Fetch a GitHub PR diff and run full multi-LLM code review.',
     {
-      pr_url: z.string().describe('GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)'),
+      pr_url: z
+        .string()
+        .regex(
+          /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/,
+          'Must be a valid GitHub PR URL: https://github.com/owner/repo/pull/123',
+        )
+        .describe('GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)'),
     },
     async ({ pr_url }) => {
       // Fetch diff via gh CLI
