@@ -62,14 +62,16 @@ export function applyThreshold(
       continue;
     }
 
-    // Single reviewer CRITICAL/WARNING → unconfirmed queue
-    if (group.docs.length === 1 && ['CRITICAL', 'WARNING'].includes(group.primarySeverity)) {
-      unconfirmed.push(...group.docs);
-      continue;
+    // Route individual docs by their own severity — handles both single-reviewer
+    // and mixed-severity groups (e.g. 1 CRITICAL + 1 WARNING) that failed to
+    // meet threshold. Prevents mixed groups from silently falling into SUGGESTION.
+    for (const doc of group.docs) {
+      if (doc.severity === 'CRITICAL' || doc.severity === 'HARSHLY_CRITICAL' || doc.severity === 'WARNING') {
+        unconfirmed.push(doc);
+      } else {
+        suggestions.push(doc);
+      }
     }
-
-    // Fallback: Low-priority suggestions
-    suggestions.push(...group.docs);
   }
 
   return { discussions, unconfirmed, suggestions };
