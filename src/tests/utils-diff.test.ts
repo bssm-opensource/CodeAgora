@@ -120,12 +120,10 @@ describe('fuzzyMatchFilePath', () => {
     expect(result).toBe('src/parser.ts');
   });
 
-  it('finds the path via partial match when the base name is a substring of a path', () => {
-    // "parse.ts" → exact: no path ends with "parse.ts"; partial: base "parse" is
-    // a substring of "src/parseResult.ts" → partial branch returns that path.
+  it('rejects prefix false positive — "parse" must not match "parseResult.ts" (#253)', () => {
     const partialPaths = ['src/parseResult.ts', 'src/validator.ts'];
     const result = fuzzyMatchFilePath('parse.ts', partialPaths);
-    expect(result).toBe('src/parseResult.ts');
+    expect(result).toBeNull();
   });
 
   it('returns null when no filename token matches any path', () => {
