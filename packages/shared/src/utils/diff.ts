@@ -6,6 +6,15 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+/** Escape special regex characters in a string */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ============================================================================
 // Diff File Range Parsing (Context-Aware Review)
 // ============================================================================
 
@@ -160,7 +169,8 @@ export interface CodeSnippet {
 }
 
 /**
- * Extract list of file paths from diff
+ * Extract list of file paths from diff.
+ * Supports both `diff --git` headers and bare unified diffs (`+++ b/` lines).
  */
 export function extractFileListFromDiff(diffContent: string): string[] {
   const files: string[] = [];
@@ -171,6 +181,18 @@ export function extractFileListFromDiff(diffContent: string): string[] {
     const match = section.match(/diff --git a\/(.+?) b\//);
     if (match) {
       files.push(match[1]);
+    }
+  }
+
+  // Fallback: if no `diff --git` headers found, extract from `+++ b/` lines
+  if (files.length === 0) {
+    const plusRegex = /^\+\+\+ b\/(.+)$/gm;
+    let m;
+    while ((m = plusRegex.exec(diffContent)) !== null) {
+      const filePath = m[1];
+      if (!files.includes(filePath)) {
+        files.push(filePath);
+      }
     }
   }
 
@@ -198,13 +220,19 @@ export function fuzzyMatchFilePath(
     if (exact) return exact;
   }
 
-  // Try partial match (filename without extension)
+  // Try partial match (filename without extension) using path-segment boundary
   for (const filename of matches) {
     const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
-    const partial = filePaths.find((path) =>
-      path.toLowerCase().includes(nameWithoutExt.toLowerCase())
+    // Require match at a path-segment boundary (after / or start) to avoid
+    // false positives like 'string' matching 'stringify.ts'
+    const segmentRegex = new RegExp(
+      `(?:^|/)${escapeRegExp(nameWithoutExt)}[^/]*$`,
+      'i'
     );
-    if (partial) return partial;
+    const candidates = filePaths.filter((p) => segmentRegex.test(p));
+    // Return null on ambiguous matches (multiple files with same basename)
+    if (candidates.length === 1) return candidates[0];
+    // If ambiguous (>1), skip this token and try next
   }
 
   return null;
