@@ -119,8 +119,17 @@ program
         options.verbose = false; // --quiet takes precedence
       }
 
-      const outputFormat = (['text', 'json', 'md', 'github', 'annotated', 'html', 'junit'].includes(options.output)
-        ? options.output : 'text') as OutputFormat;
+      const validFormats = ['text', 'json', 'md', 'github', 'annotated', 'html', 'junit'];
+      if (!validFormats.includes(options.output)) {
+        console.error(`Invalid output format: "${options.output}". Valid formats: ${validFormats.join(', ')}`);
+        process.exit(1);
+      }
+      const outputFormat = options.output as OutputFormat;
+
+      if (options.postReview && !options.pr) {
+        console.error('--post-review requires --pr to specify the target PR');
+        process.exit(1);
+      }
 
       // Handle --staged: run git diff --staged and use as input
       if (options.staged) {
