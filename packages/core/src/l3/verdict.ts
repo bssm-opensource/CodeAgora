@@ -61,6 +61,26 @@ function buildHeadPrompt(report: ModeratorReport, language?: 'en' | 'ko'): strin
     return `- [${d.finalSeverity}] ${d.discussionId} (${d.filePath}:${d.lineRange[0]}) — ${consensus}, ${d.rounds} ${isKo ? '라운드' : 'round(s)'}: ${d.reasoning}`;
   }).join('\n');
 
+  // Build condensed evidence for CRITICAL+ findings (#310)
+  const criticalDiscussions = report.discussions.filter(
+    (d) => d.finalSeverity === 'CRITICAL' || d.finalSeverity === 'HARSHLY_CRITICAL'
+  );
+  const evidenceSummary = criticalDiscussions.map((d) => {
+    const rounds = report.roundsPerDiscussion?.[d.discussionId] ?? [];
+    const snippets = rounds.flatMap((r) =>
+      r.supporterResponses.map((s) => {
+        const text = s.response.slice(0, 200);
+        return `  - [${s.stance}] ${s.supporterId}: ${text}${s.response.length > 200 ? '…' : ''}`;
+      })
+    );
+    if (snippets.length === 0) return null;
+    return `- ${d.discussionId} (${d.filePath}:${d.lineRange[0]}):\n${snippets.join('\n')}`;
+  }).filter(Boolean).join('\n');
+
+  const evidenceSection = evidenceSummary
+    ? `\n### ${isKo ? 'CRITICAL+ 토론 근거' : 'CRITICAL+ Discussion Evidence'}\n${evidenceSummary}\n`
+    : '';
+
   const unconfirmedSummary = report.unconfirmedIssues.length > 0
     ? `\n${isKo ? '미확인 이슈 (단일 리뷰어)' : 'Unconfirmed issues (single reviewer)'}: ${report.unconfirmedIssues.length}`
     : '';
@@ -75,7 +95,7 @@ function buildHeadPrompt(report: ModeratorReport, language?: 'en' | 'ko'): strin
   const harshlyCount = countBySeverity('HARSHLY_CRITICAL');
   const criticalCount = countBySeverity('CRITICAL');
   const warningCount = countBySeverity('WARNING');
-  const suggestionCount = countBySeverity('SUGGESTION');
+  const suggestionCount = report.suggestions?.length ?? 0;
   const unresolvedCount = report.discussions.filter((d) => !d.consensusReached).length;
 
   const quantSection = isKo
@@ -115,7 +135,7 @@ ${quantSection}
 
 ### 토론 상세
 ${discussionSummary || '(토론 없음)'}
-
+${evidenceSection}
 ## 작업
 
 각 토론의 추론 품질을 평가하세요. 심각도 수치만 보지 마세요:
@@ -148,7 +168,7 @@ ${quantSection}
 
 ### Discussion Details
 ${discussionSummary || '(no discussions)'}
-
+${evidenceSection}
 ## Your Task
 
 Evaluate the quality of reasoning in each discussion, not just severity counts. Consider:
