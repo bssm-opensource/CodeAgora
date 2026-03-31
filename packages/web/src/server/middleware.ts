@@ -33,12 +33,6 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     await next();
     return;
   }
-  // Skip auth for localhost (development/local usage)
-  const host = c.req.header('host') ?? '';
-  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) {
-    await next();
-    return;
-  }
   const authHeader = c.req.header('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) {
