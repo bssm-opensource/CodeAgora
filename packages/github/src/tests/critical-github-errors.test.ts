@@ -294,20 +294,19 @@ describe('DED-001: findPriorReviews paginate 403 throws and propagates', () => {
 // ============================================================================
 
 describe('SAR-002: lineRange with 0 or negative startLine', () => {
-  it('produces startLine=0 when lineRange[0]=0 (SARIF spec requires >=1, but no clamp in code)', () => {
+  it('clamps startLine to 1 when lineRange[0]=0 (SARIF spec requires >=1)', () => {
     const doc = makeDoc({ lineRange: [0, 5] });
     const report = buildSarifReport([doc], 'sess', '2026-03-21');
     const region = report.runs[0]!.results[0]!.locations[0]!.physicalLocation.region;
-    // The code uses doc.lineRange[0] directly — no clamping
-    expect(region.startLine).toBe(0);
+    expect(region.startLine).toBe(1);
     expect(region.endLine).toBe(5);
   });
 
-  it('produces startLine=-1 when lineRange[0]=-1 (no clamping in implementation)', () => {
+  it('clamps startLine to 1 when lineRange[0]=-1 (SARIF spec requires >=1)', () => {
     const doc = makeDoc({ lineRange: [-1, 3] });
     const report = buildSarifReport([doc], 'sess', '2026-03-21');
     const region = report.runs[0]!.results[0]!.locations[0]!.physicalLocation.region;
-    expect(region.startLine).toBe(-1);
+    expect(region.startLine).toBe(1);
     expect(region.endLine).toBe(3);
   });
 
