@@ -40,6 +40,7 @@ import { computeHash } from '@codeagora/shared/utils/hash.js';
 import { lookupCache, addToCache } from '@codeagora/shared/utils/cache.js';
 import { CA_ROOT } from '@codeagora/shared/utils/fs.js';
 import fs from 'fs/promises';
+import path from 'path';
 import type { Config, ReviewerEntry } from '../types/config.js';
 import type { ModeratorReport } from '../types/core.js';
 
@@ -113,6 +114,80 @@ export interface PipelineResult {
 }
 
 // ============================================================================
+// Project Context Detection (#237)
+// ============================================================================
+
+/**
+ * Auto-detect project context from package.json and monorepo indicators.
+ * Returned string is injected into reviewer prompts to prevent false positives
+ * (e.g. flagging workspace:* in pnpm monorepos, suggesting wrong libraries).
+ */
+async function detectProjectContext(repoPath: string): Promise<string | undefined> {
+  try {
+    const pkgPath = path.join(repoPath, 'package.json');
+    const pkgRaw = await fs.readFile(pkgPath, 'utf-8').catch(() => null);
+    if (!pkgRaw) return undefined;
+
+    const pkg = JSON.parse(pkgRaw) as {
+      name?: string;
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      packageManager?: string;
+    };
+
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    const depNames = Object.keys(allDeps);
+
+    const lines: string[] = [];
+
+    if (pkg.name) lines.push(`Project: ${pkg.name}`);
+
+    // Monorepo detection
+    const isMonorepo = await fs.access(path.join(repoPath, 'pnpm-workspace.yaml')).then(() => true).catch(() => false)
+      || await fs.access(path.join(repoPath, 'lerna.json')).then(() => true).catch(() => false)
+      || await fs.access(path.join(repoPath, 'nx.json')).then(() => true).catch(() => false);
+    if (isMonorepo) {
+      lines.push('Architecture: monorepo (workspace:* dependencies are STANDARD and correct — do NOT flag them)');
+    }
+
+    // Package manager
+    if (pkg.packageManager?.startsWith('pnpm') || depNames.includes('pnpm')) {
+      lines.push('Package manager: pnpm');
+    }
+
+    // Key frameworks / libraries — used to prevent wrong-library suggestions
+    const knownLibs: Array<[string[], string]> = [
+      [['zod'], 'Validation: zod (do NOT suggest joi, yup, or other validation libraries)'],
+      [['joi'], 'Validation: joi'],
+      [['express'], 'Framework: Express'],
+      [['fastify'], 'Framework: Fastify'],
+      [['hono'], 'Framework: Hono'],
+      [['next'], 'Framework: Next.js'],
+      [['nuxt'], 'Framework: Nuxt'],
+      [['react'], 'UI: React'],
+      [['vue'], 'UI: Vue'],
+      [['prisma', '@prisma/client'], 'ORM: Prisma'],
+      [['typeorm'], 'ORM: TypeORM'],
+      [['drizzle-orm'], 'ORM: Drizzle'],
+      [['vitest'], 'Test: vitest'],
+      [['jest'], 'Test: jest'],
+      [['typescript'], 'Language: TypeScript (strict mode expected)'],
+    ];
+
+    for (const [keys, label] of knownLibs) {
+      if (keys.some((k) => depNames.includes(k))) {
+        lines.push(label);
+      }
+    }
+
+    if (lines.length === 0) return undefined;
+    return `## Project Context\n${lines.map((l) => `- ${l}`).join('\n')}\n\nDo NOT flag items that conform to the above context as issues.`;
+  } catch {
+    return undefined;
+  }
+}
+
+// ============================================================================
 // Private helpers
 // ============================================================================
 
@@ -148,6 +223,7 @@ async function executeL1Reviews(
   config: Config,
   chunks: Awaited<ReturnType<typeof chunkDiff>>,
   surroundingContext: string | undefined,
+  projectContext?: string,
 ): Promise<{ allReviewResults: ReviewOutput[]; allReviewerInputs: ReviewerInput[] }> {
   const allReviewResults: ReviewOutput[] = [];
   const allReviewerInputs: ReviewerInput[] = [];
@@ -173,6 +249,13 @@ async function executeL1Reviews(
     if (config.prompts?.reviewer) {
       for (const ri of reviewerInputs) {
         ri.customPromptPath = config.prompts.reviewer;
+      }
+    }
+
+    // Inject project context to prevent false positives (#237)
+    if (projectContext) {
+      for (const ri of reviewerInputs) {
+        ri.projectContext = projectContext;
       }
     }
 
@@ -493,9 +576,14 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       };
     }
 
+    // === PROJECT CONTEXT: Detect for false-positive prevention (#237) ===
+    const projectContext = input.repoPath
+      ? await detectProjectContext(input.repoPath).catch(() => undefined)
+      : undefined;
+
     // === L1 REVIEWERS: Chunk Processing ===
     progress?.stageStart('review', `Running reviewers across ${chunks.length} chunk(s)...`);
-    const { allReviewResults, allReviewerInputs } = await executeL1Reviews(config, chunks, surroundingContext);
+    const { allReviewResults, allReviewerInputs } = await executeL1Reviews(config, chunks, surroundingContext, projectContext);
     progress?.stageComplete('review', `${allReviewResults.length} reviewer results collected`);
 
     // Empty pipeline guard — all chunks failed
