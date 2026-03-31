@@ -7,6 +7,7 @@
 import { Octokit } from '@octokit/rest';
 import { createAppAuth } from '@octokit/auth-app';
 import { readFileSync } from 'fs';
+import { validateDiffPath } from '@codeagora/shared/utils/path-validation.js';
 
 /**
  * Create a reusable Octokit instance from a GitHubConfig.
@@ -32,8 +33,14 @@ export async function createAppOctokit(owner: string, repo: string): Promise<Oct
     privateKey = privateKeyRaw;
   } else if (privateKeyPath) {
     try {
-      const resolvedPath = privateKeyPath.replace(/^~/, process.env['HOME'] ?? '');
-      privateKey = readFileSync(resolvedPath, 'utf-8');
+      const expandedPath = privateKeyPath.replace(/^~/, process.env['HOME'] ?? '');
+      const allowedRoots = [process.env['HOME'] ?? '', process.cwd()].filter(Boolean);
+      const validation = validateDiffPath(expandedPath, { allowedRoots });
+      if (!validation.success) {
+        console.warn('[GitHub App] Private key path is outside allowed directories');
+        return null;
+      }
+      privateKey = readFileSync(validation.data, 'utf-8');
     } catch {
       console.warn('[GitHub App] Failed to read private key from path');
       return null;

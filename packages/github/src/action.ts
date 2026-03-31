@@ -7,6 +7,7 @@
  * posts results to the PR, and sets commit status.
  */
 
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import { appendFileSync } from 'fs';
 import { runPipeline } from '@codeagora/core/pipeline/orchestrator.js';
@@ -192,7 +193,7 @@ function setActionOutput(name: string, value: string): void {
   if (outputFile) {
     if (value.includes('\n')) {
       // Use heredoc delimiter for multiline values
-      const delimiter = `EOF_${Date.now()}`;
+      const delimiter = `EOF_${crypto.randomBytes(16).toString('hex')}`;
       appendFileSync(outputFile, `${name}<<${delimiter}\n${value}\n${delimiter}\n`);
     } else {
       appendFileSync(outputFile, `${name}=${value}\n`);

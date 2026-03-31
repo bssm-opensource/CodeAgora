@@ -18,6 +18,16 @@ export function getAuthToken(): string {
   return DASHBOARD_TOKEN;
 }
 
+/**
+ * Timing-safe token comparison — prevents byte-by-byte brute-force via response timing.
+ * Returns false for null/undefined inputs without throwing.
+ */
+export function compareTokens(received: string | null | undefined, expected: string): boolean {
+  if (!received) return false;
+  if (received.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+}
+
 export async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
   if (c.req.path === '/api/health') {
     await next();
@@ -28,13 +38,7 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
   if (!token) {
     return c.json({ error: 'Authentication required' }, 401);
   }
-  try {
-    const expected = Buffer.from(DASHBOARD_TOKEN);
-    const received = Buffer.from(token);
-    if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
-      return c.json({ error: 'Invalid token' }, 403);
-    }
-  } catch {
+  if (!compareTokens(token, DASHBOARD_TOKEN)) {
     return c.json({ error: 'Invalid token' }, 403);
   }
   await next();

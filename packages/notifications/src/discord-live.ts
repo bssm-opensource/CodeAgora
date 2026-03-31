@@ -208,6 +208,7 @@ export async function sendDiscordPipelineSummary(
   };
 
   try {
+    validateWebhookUrl(webhookUrl);
     await fetch(webhookUrl + '?wait=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

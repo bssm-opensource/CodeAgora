@@ -43,6 +43,32 @@ export async function sendGenericWebhook(
     return;
   }
 
+  // Block private/loopback/link-local hostnames to prevent SSRF (IPv4 + IPv6)
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  const isPrivateHost =
+    // IPv4 loopback / private / link-local / unspecified
+    hostname === 'localhost' ||
+    hostname === '0.0.0.0' ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^169\.254\./.test(hostname) ||
+    // IPv6 loopback (::1), unspecified (::), link-local (fe80::), private (fc00::/7)
+    hostname === '::1' ||
+    hostname === '::' ||
+    /^fe[89ab][0-9a-f]:/i.test(hostname) || // fe80::/10 link-local
+    /^fc[0-9a-f]{2}:/i.test(hostname) ||    // fc00::/7 unique-local
+    /^fd[0-9a-f]{2}:/i.test(hostname) ||    // fd00::/8 unique-local
+    // DNS names that resolve locally
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.localhost');
+  if (isPrivateHost) {
+    process.stderr.write(`[codeagora] Generic webhook: private/internal hosts not allowed\n`);
+    return;
+  }
+
   const body = JSON.stringify({ event, timestamp: Date.now(), data: payload });
 
   // HMAC-SHA256 signature

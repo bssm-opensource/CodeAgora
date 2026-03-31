@@ -287,7 +287,8 @@ function globToRegex(pattern: string): RegExp {
       regex += '\\.';
       i += 1;
     } else {
-      regex += char.replace(/[+()[\]{}^$|\\]/g, '\\$&');
+      // Escape all regex special characters comprehensively
+      regex += char.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
       i += 1;
     }
   }

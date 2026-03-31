@@ -3,6 +3,7 @@
  * Executes 5 reviewers in parallel, each writes evidence documents
  */
 
+import crypto from 'crypto';
 import type { ReviewerConfig, FallbackConfig } from '../types/config.js';
 import type { ReviewOutput } from '../types/core.js';
 import { parseEvidenceResponse } from './parser.js';
@@ -418,8 +419,10 @@ export interface ReviewerMessages {
 }
 
 export function buildReviewerMessages(diffContent: string, prSummary: string, surroundingContext?: string): ReviewerMessages {
-  // Use a random delimiter to guard against prompt injection via diff content
-  const delimiter = `DIFF_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  // Use a cryptographically random delimiter to guard against prompt injection
+  const delimiter = `DIFF_${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+  // Escape any sequence of 3+ backticks to prevent code fence breakout
+  const safeDiffContent = diffContent.replace(/`{3,}/g, (m) => m.replace(/`/g, '\u0060'));
 
   const system = `You are a ruthless, senior code reviewer. Your job is to find **real bugs, security holes, and logic errors** that will break production. This code WILL be deployed if you don't catch the problems. Be thorough. Be aggressive. Miss nothing.
 
@@ -567,7 +570,7 @@ ${contextSection}
 
 <${delimiter}>
 \`\`\`diff
-${diffContent}
+${safeDiffContent}
 \`\`\`
 </${delimiter}>
 
