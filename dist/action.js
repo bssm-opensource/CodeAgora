@@ -69,6 +69,7 @@ __export(fs_exports, {
 });
 import fs from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 function getSessionDir(date5, sessionId) {
   return path.join(CA_ROOT, "sessions", date5, sessionId);
 }
@@ -189,7 +190,7 @@ async function getNextSessionId(date5) {
   const fallbackId = String(fallback).padStart(3, "0");
   const entries = await fs.readdir(sessionsDir).catch(() => []);
   if (entries.includes(fallbackId)) {
-    const lastResortId = String(Date.now() % 99 + 900).padStart(3, "0");
+    const lastResortId = String(900 + crypto.randomInt(99)).padStart(3, "0");
     await ensureDir(path.join(sessionsDir, lastResortId));
     return lastResortId;
   }
@@ -58413,7 +58414,8 @@ function buildObjectionPrompt(consensusDeclaration, previousRounds) {
 Previous discussion rounds:
 ${previousRounds.map(
     (r, i) => `Round ${i + 1}:
-${r.supporterResponses.map((s) => `- ${s.supporterId}: ${s.stance}`).join("\n")}`
+${r.supporterResponses.map((s) => `- ${s.supporterId}: ${s.stance}
+  ${s.response.substring(0, 200)}`).join("\n")}`
   ).join("\n\n")}
 
 As a supporter, do you OBJECT to this consensus?
@@ -59049,7 +59051,7 @@ __export(bandit_store_exports, {
 });
 import { readFile as readFile3, writeFile as writeFile2, mkdir } from "fs/promises";
 import path10 from "path";
-var BanditArmSchema, BanditStoreDataSchema, DEFAULT_STORE_PATH, BanditStore;
+var BanditArmSchema, BanditStoreDataSchema, BanditStore;
 var init_bandit_store = __esm({
   "packages/core/src/l0/bandit-store.ts"() {
     "use strict";
@@ -59078,12 +59080,11 @@ var init_bandit_store = __esm({
         rewardSignal: external_exports.union([external_exports.literal(0), external_exports.literal(1), external_exports.null()])
       }))
     });
-    DEFAULT_STORE_PATH = path10.join(process.cwd(), ".ca", "model-quality.json");
     BanditStore = class {
       data;
       filePath;
       constructor(filePath) {
-        this.filePath = filePath ?? DEFAULT_STORE_PATH;
+        this.filePath = filePath ?? path10.join(process.cwd(), ".ca", "model-quality.json");
         this.data = {
           version: 1,
           lastUpdated: (/* @__PURE__ */ new Date()).toISOString(),
@@ -59193,7 +59194,7 @@ async function loadCredentials() {
   }
 }
 async function saveCredential(key, value) {
-  await mkdir2(CONFIG_DIR, { recursive: true });
+  await mkdir2(CONFIG_DIR, { recursive: true, mode: 448 });
   const sanitized = value.replace(/[\r\n]/g, "");
   let lines = [];
   try {
@@ -59233,7 +59234,7 @@ async function checkFilePermissions(filePath, expectedMode) {
     }
     return true;
   } catch {
-    return true;
+    return false;
   }
 }
 var CONFIG_DIR, CREDENTIALS_PATH;
@@ -59342,7 +59343,7 @@ var require_fast_content_type_parse = __commonJS({
 });
 
 // packages/github/src/action.ts
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 import fs7 from "fs/promises";
 import path17 from "path";
 import { appendFileSync } from "fs";
@@ -59537,7 +59538,7 @@ var DiscussionSettingsSchema = external_exports.object({
     // 1명 + 서포터 1명
     WARNING: external_exports.number().default(2),
     // 2명+
-    SUGGESTION: external_exports.null()
+    SUGGESTION: external_exports.null().default(null)
     // Discussion 미등록
   }),
   codeSnippetRange: external_exports.number().default(10),
@@ -59856,7 +59857,7 @@ function deriveGroupName(files) {
 }
 
 // packages/core/src/l1/reviewer.ts
-import crypto from "crypto";
+import crypto2 from "crypto";
 
 // packages/shared/src/utils/diff.ts
 import fsPromises from "fs/promises";
@@ -59913,6 +59914,12 @@ function mergeRanges(ranges) {
 async function readSurroundingContext(repoPath, file2, ranges, contextLines) {
   if (ranges.length === 0 || contextLines <= 0) return "";
   const filePath = path3.join(repoPath, file2);
+  const resolvedRepo = path3.resolve(repoPath);
+  const resolvedFile = path3.resolve(filePath);
+  if (!resolvedFile.startsWith(resolvedRepo + path3.sep) && resolvedFile !== resolvedRepo) {
+    console.warn(`[Context] Path traversal blocked: ${file2} escapes ${repoPath}`);
+    return "";
+  }
   let fileContent;
   try {
     fileContent = await fsPromises.readFile(filePath, "utf-8");
@@ -60471,7 +60478,7 @@ async function executeReviewerWithGuards(input, retries, cb, hm) {
     try {
       const { loadPersona: loadPersona2 } = await Promise.resolve().then(() => (init_moderator(), moderator_exports));
       const template = await loadPersona2(input.customPromptPath);
-      reviewPrompt = template ? template.replace("{{DIFF}}", diffContent).replace("{{SUMMARY}}", prSummary) : buildReviewerPrompt(diffContent, prSummary, surroundingContext, input.projectContext);
+      reviewPrompt = template ? template.replace("{{DIFF}}", diffContent).replace("{{SUMMARY}}", prSummary).replace("{{CONTEXT}}", surroundingContext || "").replace("{{PROJECT_CONTEXT}}", input.projectContext || "") : buildReviewerPrompt(diffContent, prSummary, surroundingContext, input.projectContext);
     } catch {
       reviewPrompt = buildReviewerPrompt(diffContent, prSummary, surroundingContext, input.projectContext);
     }
@@ -60600,7 +60607,7 @@ function checkForfeitThreshold(results, threshold = 0.7) {
   };
 }
 function buildReviewerMessages(diffContent, prSummary, surroundingContext, projectContext) {
-  const delimiter = `DIFF_${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+  const delimiter = `DIFF_${crypto2.randomBytes(8).toString("hex").toUpperCase()}`;
   const safeDiffContent = diffContent.replace(/`{3,}/g, (m) => m.replace(/`/g, "`"));
   const system = `You are a ruthless, senior code reviewer. Your job is to find **real bugs, security holes, and logic errors** that will break production. This code WILL be deployed if you don't catch the problems. Be thorough. Be aggressive. Miss nothing.
 
@@ -62150,17 +62157,27 @@ var healthMonitor = null;
 var banditStore = null;
 var banditState = createBanditState();
 var initialized = false;
+var initPromise = null;
 async function initL0(routerConfig) {
   if (initialized) return;
-  await loadRegistry();
-  healthMonitor = new HealthMonitor({
-    circuitBreaker: routerConfig?.circuitBreaker,
-    dailyBudget: routerConfig?.dailyBudget
-  });
-  banditStore = new BanditStore();
-  await banditStore.load();
-  banditState = banditStore.getAllArms();
-  initialized = true;
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    if (initialized) return;
+    await loadRegistry();
+    healthMonitor = new HealthMonitor({
+      circuitBreaker: routerConfig?.circuitBreaker,
+      dailyBudget: routerConfig?.dailyBudget
+    });
+    banditStore = new BanditStore();
+    await banditStore.load();
+    banditState = banditStore.getAllArms();
+    initialized = true;
+  })();
+  try {
+    await initPromise;
+  } finally {
+    initPromise = null;
+  }
 }
 function getBanditStore() {
   return banditStore;
@@ -62520,6 +62537,7 @@ var RuleSchema = external_exports.object({
   pattern: external_exports.string(),
   severity: SeveritySchema,
   message: external_exports.string(),
+  suggestion: external_exports.string().optional(),
   filePatterns: external_exports.array(external_exports.string()).optional()
 });
 var ReviewRulesSchema = external_exports.object({
@@ -62626,7 +62644,7 @@ function matchRules(diffContent, rules) {
               `Line: ${content.trim()}`
             ],
             severity: rule.severity,
-            suggestion: `Fix the ${rule.id} violation`,
+            suggestion: rule.suggestion ?? `Fix the ${rule.id} violation`,
             filePath,
             lineRange: [lineNum, lineNum],
             source: "rule"
@@ -63340,7 +63358,7 @@ async function runPipeline(input, progress) {
       }
     }
     progress?.stageComplete("init", "Config loaded");
-    const cacheKey = computeHash(diffContent + JSON.stringify(config2.reviewers));
+    const cacheKey = computeHash(diffContent + JSON.stringify(config2));
     if (!input.noCache) {
       const cached2 = await checkAndLoadCache(cacheKey, session);
       if (cached2) return cached2;
@@ -63379,7 +63397,19 @@ async function runPipeline(input, progress) {
     }
     const projectContext = input.repoPath ? await detectProjectContext(input.repoPath, config2.reviewContext).catch(() => void 0) : void 0;
     progress?.stageStart("review", `Running reviewers across ${chunks.length} chunk(s)...`);
+    const l1Start = Date.now();
     const { allReviewResults, allReviewerInputs } = await executeL1Reviews(config2, chunks, surroundingContext, projectContext);
+    const l1Elapsed = Date.now() - l1Start;
+    for (const r of allReviewResults) {
+      telemetry.record({
+        reviewerId: r.reviewerId,
+        provider: allReviewerInputs.find((i) => i.config.id === r.reviewerId)?.config.provider ?? "unknown",
+        model: r.model,
+        latencyMs: Math.round(l1Elapsed / allReviewResults.length),
+        success: r.status === "success",
+        error: r.error
+      });
+    }
     progress?.stageComplete("review", `${allReviewResults.length} reviewer results collected`);
     if (allReviewResults.length === 0) {
       await session.setStatus("failed");
@@ -63444,6 +63474,7 @@ async function runPipeline(input, progress) {
       };
     } else {
       progress?.stageStart("discuss", "Moderating discussions...");
+      const l2Start = Date.now();
       const discussionEmitter = input.discussionEmitter ?? new DiscussionEmitter();
       moderatorReport = await executeL2Discussions(
         config2,
@@ -63456,6 +63487,13 @@ async function runPipeline(input, progress) {
         qualityTracker,
         logger
       );
+      telemetry.record({
+        reviewerId: "l2-moderator",
+        provider: config2.moderator?.provider ?? "unknown",
+        model: config2.moderator?.model ?? "unknown",
+        latencyMs: Date.now() - l2Start,
+        success: true
+      });
       progress?.stageComplete("discuss", "Discussions complete");
     }
     await writeModeratorReport(date5, sessionId, moderatorReport);
@@ -63494,7 +63532,15 @@ async function runPipeline(input, progress) {
       };
     }
     progress?.stageStart("verdict", "Generating verdict...");
+    const l3Start = Date.now();
     const headVerdict = await executeL3Verdict(config2, moderatorReport);
+    telemetry.record({
+      reviewerId: "l3-head",
+      provider: config2.head?.provider ?? "unknown",
+      model: config2.head?.model ?? "unknown",
+      latencyMs: Date.now() - l3Start,
+      success: true
+    });
     await writeHeadVerdict(date5, sessionId, headVerdict);
     progress?.stageComplete("verdict", "Verdict complete");
     await recordTelemetry(qualityTracker, sessionId, logger);
@@ -69702,7 +69748,7 @@ function setActionOutput(name25, value) {
   const outputFile = process.env["GITHUB_OUTPUT"];
   if (outputFile) {
     if (value.includes("\n")) {
-      const delimiter = `EOF_${crypto2.randomBytes(16).toString("hex")}`;
+      const delimiter = `EOF_${crypto3.randomBytes(16).toString("hex")}`;
       appendFileSync(outputFile, `${name25}<<${delimiter}
 ${value}
 ${delimiter}
