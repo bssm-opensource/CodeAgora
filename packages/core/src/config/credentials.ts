@@ -49,7 +49,7 @@ export async function loadCredentials(): Promise<void> {
  * Updates existing key or appends new one.
  */
 export async function saveCredential(key: string, value: string): Promise<void> {
-  await mkdir(CONFIG_DIR, { recursive: true });
+  await mkdir(CONFIG_DIR, { recursive: true, mode: 0o700 });
 
   const sanitized = value.replace(/[\r\n]/g, '');
   let lines: string[] = [];
