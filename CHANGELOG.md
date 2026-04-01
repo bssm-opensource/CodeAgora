@@ -1,5 +1,60 @@
 # Changelog
 
+## 2.2.0 (2026-04-01)
+
+### New: 4-Layer Hallucination Filter
+- **Layer 1**: Pre-debate hallucination check — removes findings referencing files/lines not in diff (#428)
+- **Layer 2**: Corroboration scoring — single-reviewer penalty ×0.5, triple+ boost ×1.2, diff-size correction (#432)
+- **Layer 3a**: HARSHLY_CRITICAL debate required — no more auto-escalation without discussion (#429)
+- **Layer 3b**: Adversarial supporter prompt — "반증해봐" replaces "동의해?" (#430)
+- **Layer 3c**: Static analysis evidence in debate — tsc diagnostics, file classification, impact data (#431)
+- **Self-contradiction filter**: Findings that admit the issue is handled get ×0.3 confidence penalty (#438)
+- **Evidence-level dedup**: Merges duplicate findings before L2, preserves contradiction penalties (#439)
+- **"Already handled" prompt patterns**: Reviewers told not to flag guarded values (#440)
+
+### New: Pre-Analysis Layer
+- Semantic diff classification (rename/logic/refactor/config/test/docs) (#411)
+- TypeScript diagnostics injection via tsc --noEmit (#414)
+- Change impact analysis — caller/importer tracking (#415)
+- External AI rule file detection (.cursorrules, CLAUDE.md, copilot-instructions) (#407)
+- Path-based review rules from config (#408)
+
+### New: Specialist Reviewer Personas
+- 4 built-in: builtin:security, builtin:logic, builtin:api-contract, builtin:general (#412)
+- Auto reviewers cycle through personas for diverse perspectives
+
+### New: Suggestion Verification
+- CRITICAL+ code suggestions verified via TypeScript transpiler (#413)
+- Failed suggestions get ×0.5 confidence penalty + warning badge
+
+### New: Triage Digest
+- One-liner: `📋 Triage: N must-fix · N verify · N ignore` (#410)
+
+### Quality Results
+- False positive rate: 100% → <25% (measured on test diffs)
+- CRITICAL false positives: 9 survivors → 0
+- Debate DISMISSED rate: 63% → 100%
+- Tests: 180 files, 2846 passing
+
+---
+
+## 2.1.1 (2026-04-01)
+
+### Bug Fixes (12 issues)
+- SUGGESTION threshold default null (#287)
+- Session ID / MCP temp file race conditions (#290, #282)
+- Webhook JSON.stringify crash on circular payload (#285)
+- BanditStore path frozen at module load (#278)
+- Cache key includes full config (#276)
+- Dead executeReviewer export removed (#279)
+- PipelineTelemetry wired with stage timing (#274)
+- Objection prompt includes supporter reasoning (#311)
+- Custom rule suggestion field (#301)
+- initL0 mutex for concurrent initialization (#395)
+- Custom prompt {{CONTEXT}} and {{PROJECT_CONTEXT}} placeholders (#312)
+
+---
+
 ## 2.1.0 (2026-04-01)
 
 ### Security (7 fixes)
