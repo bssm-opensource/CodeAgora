@@ -249,6 +249,8 @@ export const ReviewContextSchema = z.object({
     pattern: z.string(),
     notes: z.array(z.string()),
   })).optional(),
+  /** Verify CRITICAL+ code suggestions compile before posting (default: true) (#413) */
+  verifySuggestions: z.boolean().optional(),
 }).optional();
 export type ReviewContext = z.infer<typeof ReviewContextSchema>;
 
