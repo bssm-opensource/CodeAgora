@@ -266,13 +266,13 @@ describe('CRED-02 — loadCredentials with missing credentials file returns sile
 });
 
 describe('CRED-01 — credentials line parser handles garbage content', () => {
-  it('checkFilePermissions returns true on non-existent file (stat catch)', async () => {
+  it('checkFilePermissions returns false on non-existent file (fail closed, #393)', async () => {
     const { checkFilePermissions } = await import(
       '../../packages/core/src/config/credentials.js'
     );
-    // stat will fail on a non-existent file — function should return true (let caller handle)
+    // stat will fail on a non-existent file — function should return false (fail closed)
     const result = await checkFilePermissions('/tmp/__nonexistent_codeagora_test__', 0o600);
-    expect(result).toBe(true);
+    expect(result).toBe(false);
   });
 
   it('checkFilePermissions returns false when permissions are wrong', async () => {
