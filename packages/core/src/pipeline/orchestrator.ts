@@ -748,6 +748,16 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       }
     }
 
+    // === SUGGESTION VERIFICATION: Check if proposed fixes compile (#413) ===
+    if (input.repoPath && config.reviewContext?.verifySuggestions !== false) {
+      try {
+        const { verifySuggestions } = await import('./suggestion-verifier.js');
+        await verifySuggestions(input.repoPath, allEvidenceDocs);
+      } catch {
+        // Verification failure is non-fatal
+      }
+    }
+
     const thresholdResult = applyThreshold(allEvidenceDocs, config.discussion);
     const logger = createLogger(date, sessionId, 'pipeline');
 

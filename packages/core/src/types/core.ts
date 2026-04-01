@@ -49,6 +49,7 @@ export const EvidenceDocumentSchema = z.object({
   lineRange: z.tuple([z.number(), z.number()]),
   source: z.enum(['llm', 'rule']).optional(),
   confidence: z.number().min(0).max(100).optional(),
+  suggestionVerified: z.enum(['passed', 'failed', 'skipped']).optional(),
 });
 export type EvidenceDocument = z.infer<typeof EvidenceDocumentSchema>;
 

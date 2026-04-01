@@ -119,6 +119,15 @@ export function mapToInlineCommentBody(
     } else {
       lines.push(`**Suggestion:** ${doc.suggestion}`);
     }
+
+    // Suggestion verification badge (#413)
+    if (doc.suggestionVerified === 'passed') {
+      lines.push('');
+      lines.push('\u2705 *Suggestion verified \u2014 compiles successfully*');
+    } else if (doc.suggestionVerified === 'failed') {
+      lines.push('');
+      lines.push('\u274C *Suggestion failed verification \u2014 may not compile*');
+    }
   }
 
   // Individual reviewer opinions (L1)
