@@ -27,7 +27,7 @@ packages/
 ├── github/         # @codeagora/github — PR review posting, SARIF, diff parsing, Actions
 ├── notifications/  # @codeagora/notifications — Discord/Slack webhooks, event stream
 ├── cli/            # @codeagora/cli — CLI entrypoint, commands, formatters
-├── tui/            # @codeagora/tui — interactive terminal UI (ink + React)
+├── tui/            # @codeagora/tui — interactive terminal UI (experimental, ink + React)
 ├── mcp/            # @codeagora/mcp — MCP server (7 tools, multi-platform)
 └── web/            # @codeagora/web — Hono.js REST API + React SPA dashboard
 ```

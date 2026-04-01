@@ -67,7 +67,7 @@ git diff | agora review
 
 ```bash
 npm i -g @codeagora/web            # Web dashboard
-npm i -g @codeagora/tui            # Interactive TUI
+npm i -g @codeagora/tui            # Interactive TUI (experimental)
 npm i -g @codeagora/mcp            # Claude Code / Cursor integration
 npm i -g @codeagora/notifications  # Discord / Slack webhooks
 ```

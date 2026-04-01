@@ -117,9 +117,9 @@ agora dashboard --port 4000  # Custom port
 agora dashboard --open       # Auto-open browser
 ```
 
-## `agora tui`
+## `agora tui` (experimental)
 
-Launch interactive terminal UI (requires `@codeagora/tui`).
+Launch interactive terminal UI (requires `@codeagora/tui`). This feature is experimental and may have known issues.
 
 ## Other Commands
 
