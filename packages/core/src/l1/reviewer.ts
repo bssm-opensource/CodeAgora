@@ -164,7 +164,11 @@ async function executeReviewerWithGuards(
       const { loadPersona } = await import('../l2/moderator.js');
       const template = await loadPersona(input.customPromptPath);
       reviewPrompt = template
-        ? template.replace('{{DIFF}}', diffContent).replace('{{SUMMARY}}', prSummary)
+        ? template
+            .replace('{{DIFF}}', diffContent)
+            .replace('{{SUMMARY}}', prSummary)
+            .replace('{{CONTEXT}}', surroundingContext || '')
+            .replace('{{PROJECT_CONTEXT}}', input.projectContext || '')
         : buildReviewerPrompt(diffContent, prSummary, surroundingContext, input.projectContext);
     } catch {
       reviewPrompt = buildReviewerPrompt(diffContent, prSummary, surroundingContext, input.projectContext);
