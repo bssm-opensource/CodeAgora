@@ -161,8 +161,8 @@ describe('runModerator() parallel execution', () => {
     expect(report.summary.escalated).toBe(0);
   });
 
-  it('HARSHLY_CRITICAL discussion is skipped and gets immediate verdict (consensusReached: false)', async () => {
-    vi.mocked(executeBackend).mockResolvedValue('AGREE: evidence is valid');
+  it('HARSHLY_CRITICAL discussion goes through debate (#429) — all agree preserves HC', async () => {
+    vi.mocked(executeBackend).mockResolvedValue('Stance: AGREE\nThe evidence is valid.');
 
     const discussions = [
       makeDiscussion('d001', 'HARSHLY_CRITICAL'),
@@ -176,8 +176,9 @@ describe('runModerator() parallel execution', () => {
     const hcVerdict = report.discussions.find((v) => v.discussionId === 'd001');
     expect(hcVerdict).toBeDefined();
     expect(hcVerdict!.finalSeverity).toBe('HARSHLY_CRITICAL');
-    expect(hcVerdict!.consensusReached).toBe(false);
-    expect(hcVerdict!.rounds).toBe(0);
+    // HC now goes through debate — consensus reached via all-agree
+    expect(hcVerdict!.consensusReached).toBe(true);
+    expect(hcVerdict!.rounds).toBeGreaterThanOrEqual(1);
 
     // d002 proceeds normally
     const d002Verdict = report.discussions.find((v) => v.discussionId === 'd002');
@@ -186,10 +187,10 @@ describe('runModerator() parallel execution', () => {
   });
 
   it('summary values are correct (totalDiscussions, resolved, escalated)', async () => {
-    vi.mocked(executeBackend).mockResolvedValue('AGREE: evidence is valid');
+    vi.mocked(executeBackend).mockResolvedValue('Stance: AGREE\nThe evidence is valid.');
 
     const discussions = [
-      makeDiscussion('d001', 'HARSHLY_CRITICAL'), // escalated (consensusReached: false)
+      makeDiscussion('d001', 'HARSHLY_CRITICAL'), // now debated, all agree → resolved
       makeDiscussion('d002', 'WARNING'),           // resolved (consensusReached: true)
       makeDiscussion('d003', 'CRITICAL'),          // resolved (consensusReached: true)
     ];
@@ -197,8 +198,8 @@ describe('runModerator() parallel execution', () => {
     const report = await runModerator(makeInput(discussions));
 
     expect(report.summary.totalDiscussions).toBe(3);
-    expect(report.summary.resolved).toBe(2);
-    expect(report.summary.escalated).toBe(1);
+    expect(report.summary.resolved).toBe(3); // all 3 resolved now (HC no longer auto-escalated)
+    expect(report.summary.escalated).toBe(0);
   });
 
   it('parallel execution runs discussions concurrently', async () => {
