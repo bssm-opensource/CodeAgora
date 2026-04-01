@@ -64,12 +64,19 @@ export async function securityHeaders(c: Context, next: Next): Promise<Response 
 // Rate Limiter
 // ============================================================================
 
+const TRUST_PROXY = process.env['CODEAGORA_TRUST_PROXY'] === 'true';
+
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
 
 export async function rateLimiter(c: Context, next: Next): Promise<Response | void> {
-  const ip =
-    c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'local';
+  const ip = TRUST_PROXY
+    ? (c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? c.req.header('x-real-ip') ?? 'local')
+    : 'local';
   const now = Date.now();
+  // Prune expired entries to prevent unbounded memory growth (#388)
+  for (const [key, entry] of requestCounts) {
+    if (now > entry.resetAt) requestCounts.delete(key);
+  }
   const entry = requestCounts.get(ip);
   const isWrite =
     c.req.method === 'PUT' || c.req.method === 'POST' || c.req.method === 'DELETE';
