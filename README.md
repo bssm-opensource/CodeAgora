@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/codeagora"><img src="https://img.shields.io/npm/v/codeagora?color=%2305A6B9" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-2702%20passing-%23191A51" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-2749%20passing-%23191A51" alt="Tests">
   <img src="https://img.shields.io/badge/node-%3E%3D20-%2305A6B9" alt="Node">
   <img src="https://img.shields.io/badge/license-MIT-%23191A51" alt="License">
 </p>
@@ -67,7 +67,7 @@ git diff | agora review
 
 ```bash
 npm i -g @codeagora/web            # Web dashboard
-npm i -g @codeagora/tui            # Interactive TUI
+npm i -g @codeagora/tui            # Interactive TUI (experimental)
 npm i -g @codeagora/mcp            # Claude Code / Cursor integration
 npm i -g @codeagora/notifications  # Discord / Slack webhooks
 ```
@@ -140,7 +140,7 @@ Every PR gets inline review comments, a summary verdict, and a commit status che
 
 ```bash
 pnpm install && pnpm build
-pnpm test          # 2702 tests
+pnpm test          # 2749 tests
 pnpm typecheck
 pnpm cli review path/to/diff.patch
 ```

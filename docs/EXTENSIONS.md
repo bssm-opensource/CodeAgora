@@ -4,7 +4,7 @@ Optional packages installed separately from the core `codeagora` CLI.
 
 ```bash
 npm i -g @codeagora/web            # Web dashboard
-npm i -g @codeagora/tui            # Interactive TUI
+npm i -g @codeagora/tui            # Interactive TUI (experimental)
 npm i -g @codeagora/mcp            # MCP server (Claude Code, Cursor, etc.)
 npm i -g @codeagora/notifications  # Discord/Slack webhooks
 ```
@@ -30,7 +30,7 @@ agora dashboard --open       # Auto-open browser
 
 Binds to `127.0.0.1` (loopback only). CORS restricted to localhost origins.
 
-## Interactive TUI (`@codeagora/tui`)
+## Interactive TUI (`@codeagora/tui`) — Experimental
 
 Terminal UI — review setup wizard, real-time pipeline progress, debate viewer, and results drill-down.
 
