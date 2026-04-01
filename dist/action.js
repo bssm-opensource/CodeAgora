@@ -59603,6 +59603,24 @@ var PromptsConfigSchema = external_exports.object({
   supporter: external_exports.string().optional(),
   head: external_exports.string().optional()
 }).optional();
+var ReviewContextSchema = external_exports.object({
+  /** Deployment type — tells reviewers how the project is built and deployed */
+  deploymentType: external_exports.enum([
+    "github-action",
+    "cli",
+    "library",
+    "web-app",
+    "api-server",
+    "lambda",
+    "docker",
+    "edge-function",
+    "monorepo"
+  ]).optional(),
+  /** Free-form context lines injected into reviewer prompt */
+  notes: external_exports.array(external_exports.string()).optional(),
+  /** Files/patterns that are bundled outputs (all deps inlined, do NOT flag external issues) */
+  bundledOutputs: external_exports.array(external_exports.string()).optional()
+}).optional();
 var ConfigSchema = external_exports.object({
   mode: ReviewModeSchema.optional(),
   language: LanguageSchema.optional(),
@@ -59618,6 +59636,7 @@ var ConfigSchema = external_exports.object({
   github: GitHubIntegrationSchema.optional(),
   autoApprove: AutoApproveConfigSchema,
   prompts: PromptsConfigSchema,
+  reviewContext: ReviewContextSchema,
   plugins: external_exports.array(external_exports.string()).optional()
 });
 function validateConfig(configJson) {
@@ -63001,43 +63020,84 @@ async function addToCache(caRoot, cacheKey, sessionPath) {
 init_fs();
 import fs6 from "fs/promises";
 import path16 from "path";
-async function detectProjectContext(repoPath) {
+async function detectProjectContext(repoPath, userContext) {
   try {
+    const lines = [];
+    if (userContext?.deploymentType) {
+      const deployDescriptions = {
+        "github-action": "Deployment: GitHub Action \u2014 dist/ is a SELF-CONTAINED BUNDLE. All dependencies MUST be inlined. Do NOT flag bundled dependencies as external or missing.",
+        "cli": "Deployment: CLI tool \u2014 distributed as a standalone executable or npm package.",
+        "library": "Deployment: Library \u2014 published to a package registry. Public API surface matters.",
+        "web-app": "Deployment: Web application \u2014 bundled for browser delivery.",
+        "api-server": "Deployment: API server \u2014 runs as a long-lived process.",
+        "lambda": "Deployment: Serverless function (Lambda/Cloud Function) \u2014 cold-start and bundle size matter.",
+        "docker": "Deployment: Docker container \u2014 multi-stage builds and image size matter.",
+        "edge-function": "Deployment: Edge function \u2014 strict runtime constraints, limited APIs.",
+        "monorepo": "Architecture: monorepo (workspace:* dependencies are STANDARD and correct \u2014 do NOT flag them)."
+      };
+      lines.push(deployDescriptions[userContext.deploymentType] ?? `Deployment: ${userContext.deploymentType}`);
+    }
+    const markerFiles = [
+      [["action.yml", "action.yaml"], "Deployment: GitHub Action \u2014 dist/ is a SELF-CONTAINED BUNDLE. All dependencies MUST be inlined. Do NOT flag bundled dependencies as external or missing."],
+      [["Dockerfile"], "Build: Docker container detected."],
+      [["serverless.yml", "serverless.yaml"], "Deployment: Serverless Framework detected."],
+      [["vercel.json"], "Deployment: Vercel detected."],
+      [["netlify.toml"], "Deployment: Netlify detected."],
+      [["fly.toml"], "Deployment: Fly.io detected."],
+      [["wrangler.toml"], "Deployment: Cloudflare Workers detected."]
+    ];
+    for (const [files, label] of markerFiles) {
+      for (const f of files) {
+        const exists = await fs6.access(path16.join(repoPath, f)).then(() => true).catch(() => false);
+        if (exists) {
+          lines.push(label);
+          break;
+        }
+      }
+    }
+    if (userContext?.bundledOutputs && userContext.bundledOutputs.length > 0) {
+      lines.push(`Bundled outputs: ${userContext.bundledOutputs.join(", ")} \u2014 all deps inlined, do NOT flag external/missing dependency issues in these paths.`);
+    }
     const pkgPath = path16.join(repoPath, "package.json");
     const pkgRaw = await fs6.readFile(pkgPath, "utf-8").catch(() => null);
-    if (!pkgRaw) return void 0;
-    const pkg = JSON.parse(pkgRaw);
-    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-    const depNames = Object.keys(allDeps);
-    const lines = [];
-    if (pkg.name) lines.push(`Project: ${pkg.name}`);
-    const isMonorepo = await fs6.access(path16.join(repoPath, "pnpm-workspace.yaml")).then(() => true).catch(() => false) || await fs6.access(path16.join(repoPath, "lerna.json")).then(() => true).catch(() => false) || await fs6.access(path16.join(repoPath, "nx.json")).then(() => true).catch(() => false);
-    if (isMonorepo) {
-      lines.push("Architecture: monorepo (workspace:* dependencies are STANDARD and correct \u2014 do NOT flag them)");
+    if (pkgRaw) {
+      const pkg = JSON.parse(pkgRaw);
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+      const depNames = Object.keys(allDeps);
+      if (pkg.name) lines.push(`Project: ${pkg.name}`);
+      const isMonorepo = await fs6.access(path16.join(repoPath, "pnpm-workspace.yaml")).then(() => true).catch(() => false) || await fs6.access(path16.join(repoPath, "lerna.json")).then(() => true).catch(() => false) || await fs6.access(path16.join(repoPath, "nx.json")).then(() => true).catch(() => false);
+      if (isMonorepo) {
+        lines.push("Architecture: monorepo (workspace:* dependencies are STANDARD and correct \u2014 do NOT flag them)");
+      }
+      if (pkg.packageManager?.startsWith("pnpm") || depNames.includes("pnpm")) {
+        lines.push("Package manager: pnpm");
+      }
+      const knownLibs = [
+        [["zod"], "Validation: zod (do NOT suggest joi, yup, or other validation libraries)"],
+        [["joi"], "Validation: joi"],
+        [["express"], "Framework: Express"],
+        [["fastify"], "Framework: Fastify"],
+        [["hono"], "Framework: Hono"],
+        [["next"], "Framework: Next.js"],
+        [["nuxt"], "Framework: Nuxt"],
+        [["react"], "UI: React"],
+        [["vue"], "UI: Vue"],
+        [["prisma", "@prisma/client"], "ORM: Prisma"],
+        [["typeorm"], "ORM: TypeORM"],
+        [["drizzle-orm"], "ORM: Drizzle"],
+        [["vitest"], "Test: vitest"],
+        [["jest"], "Test: jest"],
+        [["typescript"], "Language: TypeScript (strict mode expected)"]
+      ];
+      for (const [keys, label] of knownLibs) {
+        if (keys.some((k) => depNames.includes(k))) {
+          lines.push(label);
+        }
+      }
     }
-    if (pkg.packageManager?.startsWith("pnpm") || depNames.includes("pnpm")) {
-      lines.push("Package manager: pnpm");
-    }
-    const knownLibs = [
-      [["zod"], "Validation: zod (do NOT suggest joi, yup, or other validation libraries)"],
-      [["joi"], "Validation: joi"],
-      [["express"], "Framework: Express"],
-      [["fastify"], "Framework: Fastify"],
-      [["hono"], "Framework: Hono"],
-      [["next"], "Framework: Next.js"],
-      [["nuxt"], "Framework: Nuxt"],
-      [["react"], "UI: React"],
-      [["vue"], "UI: Vue"],
-      [["prisma", "@prisma/client"], "ORM: Prisma"],
-      [["typeorm"], "ORM: TypeORM"],
-      [["drizzle-orm"], "ORM: Drizzle"],
-      [["vitest"], "Test: vitest"],
-      [["jest"], "Test: jest"],
-      [["typescript"], "Language: TypeScript (strict mode expected)"]
-    ];
-    for (const [keys, label] of knownLibs) {
-      if (keys.some((k) => depNames.includes(k))) {
-        lines.push(label);
+    if (userContext?.notes && userContext.notes.length > 0) {
+      for (const note of userContext.notes) {
+        lines.push(note);
       }
     }
     if (lines.length === 0) return void 0;
@@ -63317,7 +63377,7 @@ async function runPipeline(input, progress) {
         status: "success"
       };
     }
-    const projectContext = input.repoPath ? await detectProjectContext(input.repoPath).catch(() => void 0) : void 0;
+    const projectContext = input.repoPath ? await detectProjectContext(input.repoPath, config2.reviewContext).catch(() => void 0) : void 0;
     progress?.stageStart("review", `Running reviewers across ${chunks.length} chunk(s)...`);
     const { allReviewResults, allReviewerInputs } = await executeL1Reviews(config2, chunks, surroundingContext, projectContext);
     progress?.stageComplete("review", `${allReviewResults.length} reviewer results collected`);
