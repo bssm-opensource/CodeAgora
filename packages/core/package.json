@@ -3,17 +3,15 @@
   "version": "2.0.0",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.js"
     },
     "./*.js": "./dist/*.js",
     "./*": "./dist/*"
   },
   "scripts": {
-    "build": "echo skip",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src/"
