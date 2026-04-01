@@ -165,7 +165,7 @@ describe('GET /api/sessions/:date/:id — diff field', () => {
       const p = String(filePath);
       if (p.includes('metadata.json')) return JSON.stringify(sampleMetadata);
       if (p.includes('head-verdict.json')) return sampleVerdictContent;
-      if (p === 'test.diff') return diffContent;
+      if (p.endsWith('test.diff')) return diffContent;
       return '{}';
     });
 
@@ -188,7 +188,7 @@ describe('GET /api/sessions/:date/:id — diff field', () => {
       if (p.includes('metadata.json')) return JSON.stringify(sampleMetadata);
       if (p.includes('head-verdict.json')) return sampleVerdictContent;
       // diff file read throws
-      if (p === 'test.diff') throw new Error('ENOENT: no such file');
+      if (p.endsWith('test.diff')) throw new Error('ENOENT: no such file');
       return '{}';
     });
 
