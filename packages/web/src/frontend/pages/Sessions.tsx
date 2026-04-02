@@ -4,10 +4,10 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi.js';
 import { SessionFilters } from '../components/SessionFilters.js';
 import { SessionList } from '../components/SessionList.js';
-import { SessionCompare } from '../components/SessionCompare.js';
 import { TrendChart } from '../components/TrendChart.js';
 import type { TrendDataPoint } from '../components/TrendChart.js';
 import type {
@@ -43,13 +43,13 @@ function buildTrendData(sessions: readonly SessionMetadata[]): TrendDataPoint[] 
 }
 
 export function Sessions(): React.JSX.Element {
+  const navigate = useNavigate();
   const { data: rawSessions, loading, error, refetch } = useApi<SessionMetadata[]>('/api/sessions');
   const [filters, setFilters] = useState<SessionFiltersType>(DEFAULT_FILTERS);
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-  const [showCompare, setShowCompare] = useState(false);
 
   const sessions = rawSessions ?? [];
 
@@ -93,13 +93,12 @@ export function Sessions(): React.JSX.Element {
   }, []);
 
   const handleCompare = useCallback(() => {
-    setShowCompare(true);
-  }, []);
-
-  const handleCloseCompare = useCallback(() => {
-    setShowCompare(false);
-    setSelectedIds(new Set());
-  }, []);
+    const keys = [...selectedIds];
+    if (keys.length !== 2) return;
+    // Keys are in "date/sessionId" format
+    const [keyA, keyB] = keys;
+    void navigate(`/compare/${keyA}/${keyB}`);
+  }, [selectedIds, navigate]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -139,8 +138,6 @@ export function Sessions(): React.JSX.Element {
     );
   }
 
-  const selectedArray = [...selectedIds];
-
   return (
     <div className="page">
       <div className="page-header">
@@ -152,20 +149,13 @@ export function Sessions(): React.JSX.Element {
 
       <SessionFilters filters={filters} onFilterChange={setFilters} />
 
-      {selectedIds.size === 2 && !showCompare && (
+      {selectedIds.size === 2 && (
         <div className="compare-bar">
           <span>{selectedIds.size} sessions selected</span>
           <button onClick={handleCompare} type="button" className="compare-button">
-            Compare
+            Compare Selected
           </button>
         </div>
-      )}
-
-      {showCompare && selectedArray.length === 2 && (
-        <SessionCompare
-          sessionKeys={[selectedArray[0], selectedArray[1]]}
-          onClose={handleCloseCompare}
-        />
       )}
 
       <SessionList

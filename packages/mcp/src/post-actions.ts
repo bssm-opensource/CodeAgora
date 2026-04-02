@@ -1,0 +1,127 @@
+/**
+ * MCP Post-Pipeline Actions
+ * Formatting, GitHub posting, and notification helpers.
+ */
+
+import type { PipelineResult } from '@codeagora/core/pipeline/orchestrator.js';
+
+// ============================================================================
+// Output Formatting
+// ============================================================================
+
+export type OutputFormat = 'text' | 'json' | 'md' | 'github' | 'html' | 'junit';
+
+/**
+ * Format a PipelineResult using the CLI formatter.
+ * Lazy-imports the CLI formatter to avoid pulling in the full CLI package at startup.
+ */
+export async function formatReviewResult(
+  result: PipelineResult,
+  format: OutputFormat = 'text',
+): Promise<string> {
+  const { formatOutput } = await import('@codeagora/cli/formatters/review-output.js');
+  return formatOutput(result, format);
+}
+
+// ============================================================================
+// GitHub PR Posting
+// ============================================================================
+
+/**
+ * Post review comments to a GitHub PR.
+ * Parses owner/repo/number from the PR URL.
+ */
+export async function postToGitHub(
+  result: PipelineResult,
+  prUrl: string,
+): Promise<{ reviewUrl?: string }> {
+  if (result.status !== 'success' || !result.summary) {
+    throw new Error('Cannot post review: pipeline did not succeed');
+  }
+
+  const match = prUrl.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+  if (!match) {
+    throw new Error(`Invalid GitHub PR URL: ${prUrl}`);
+  }
+  const [, owner, repo, numberStr] = match;
+  const prNumber = parseInt(numberStr!, 10);
+
+  const { execFile: execFileCb } = await import('child_process');
+  const { promisify } = await import('util');
+  const execFile = promisify(execFileCb);
+
+  // Fetch PR diff and head SHA
+  const { stdout: diff } = await execFile('gh', ['pr', 'view', prUrl, '--json', 'headRefOid', '-q', '.headRefOid']);
+  const headSha = diff.trim();
+
+  const ghConfig = {
+    token: process.env['GITHUB_TOKEN'] ?? '',
+    owner: owner!,
+    repo: repo!,
+  };
+
+  const { mapToGitHubReview } = await import('@codeagora/github/mapper.js');
+  const { buildDiffPositionIndex } = await import('@codeagora/github/diff-position.js');
+  const { postReview, setCommitStatus } = await import('@codeagora/github/poster.js');
+
+  // Fetch the actual diff for position mapping
+  const { stdout: prDiff } = await execFile('gh', ['pr', 'diff', prUrl]);
+  const positionIndex = buildDiffPositionIndex(prDiff);
+
+  const review = mapToGitHubReview({
+    summary: result.summary,
+    evidenceDocs: result.evidenceDocs ?? [],
+    discussions: result.discussions ?? [],
+    positionIndex,
+    headSha,
+    sessionId: result.sessionId,
+    sessionDate: result.date,
+  });
+
+  const reviewUrl = await postReview(ghConfig, prNumber, review);
+  await setCommitStatus(ghConfig, headSha, result.summary.decision, reviewUrl);
+
+  return { reviewUrl };
+}
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+/**
+ * Send Discord/Slack notification for a completed review.
+ * Reads notification config from .ca/config.json.
+ */
+export async function sendReviewNotification(
+  result: PipelineResult,
+): Promise<void> {
+  if (result.status !== 'success' || !result.summary) {
+    return;
+  }
+
+  const { loadConfig } = await import('@codeagora/core/config/loader.js');
+  const config = await loadConfig().catch(() => null);
+
+  if (!config?.notifications) {
+    throw new Error('No notification configuration found in .ca/config');
+  }
+
+  const { sendNotifications } = await import('@codeagora/notifications/webhook.js');
+  const s = result.summary;
+
+  await sendNotifications(config.notifications, {
+    decision: s.decision,
+    reasoning: s.reasoning,
+    severityCounts: s.severityCounts,
+    topIssues: s.topIssues.map((issue: { severity: string; filePath: string; title: string }) => ({
+      severity: issue.severity,
+      filePath: issue.filePath,
+      title: issue.title,
+    })),
+    sessionId: result.sessionId,
+    date: result.date,
+    totalDiscussions: s.totalDiscussions,
+    resolved: s.resolved,
+    escalated: s.escalated,
+  });
+}

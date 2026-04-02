@@ -8,6 +8,7 @@ import { usePipelineEvents } from '../hooks/usePipelineEvents.js';
 import { PipelineStages } from '../components/PipelineStages.js';
 import { EventLog } from '../components/EventLog.js';
 import { LiveDiscussion } from '../components/LiveDiscussion.js';
+import { ReviewTrigger } from '../components/ReviewTrigger.js';
 
 export function Pipeline(): React.JSX.Element {
   const { stages, currentStage, events, discussions, connected } = usePipelineEvents();
@@ -30,9 +31,7 @@ export function Pipeline(): React.JSX.Element {
       )}
 
       {!hasActivity && connected && (
-        <div className="pipeline-notice pipeline-notice--info">
-          Waiting for pipeline...
-        </div>
+        <ReviewTrigger onStarted={() => { /* WebSocket events will drive the pipeline UI */ }} />
       )}
 
       {hasActivity && (

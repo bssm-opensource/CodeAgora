@@ -14,10 +14,12 @@ import { registerDryRun } from './tools/dry-run.js';
 import { registerExplain } from './tools/explain.js';
 import { registerLeaderboard } from './tools/leaderboard.js';
 import { registerStats } from './tools/stats.js';
+import { registerConfigGet } from './tools/config-get.js';
+import { registerConfigSet } from './tools/config-set.js';
 
 const server = new McpServer({
   name: 'codeagora',
-  version: '2.0.0',
+  version: '2.3.0',
 });
 
 // Register all tools
@@ -28,6 +30,8 @@ registerDryRun(server);
 registerExplain(server);
 registerLeaderboard(server);
 registerStats(server);
+registerConfigGet(server);
+registerConfigSet(server);
 
 // Start stdio transport
 const transport = new StdioServerTransport();

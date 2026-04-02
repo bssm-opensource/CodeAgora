@@ -10,7 +10,9 @@ import { sessionRoutes } from './routes/sessions.js';
 import { modelRoutes } from './routes/models.js';
 import { configRoutes } from './routes/config.js';
 import { costRoutes } from './routes/costs.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { healthRoutes } from './routes/health.js';
+import { reviewRoutes } from './routes/review.js';
 import {
   corsMiddleware,
   errorHandler,
@@ -53,6 +55,8 @@ export function createApp(): Hono {
   app.route('/api/models', modelRoutes);
   app.route('/api/config', configRoutes);
   app.route('/api/costs', costRoutes);
+  app.route('/api/notifications', notificationRoutes);
+  app.route('/api/review', reviewRoutes);
 
   // Serve static frontend files in production
   app.use(
