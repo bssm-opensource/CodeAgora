@@ -33,7 +33,7 @@ export function HomeScreen({ onNavigate, onQuit }: HomeScreenProps): React.JSX.E
     <Panel title={t('app.title')}>
       <Box flexDirection="column" marginBottom={1}>
         <Text color={colors.success}>{icons.check} Ready</Text>
-        <Text color={colors.muted}>{'v1.1.0'}</Text>
+        <Text color={colors.muted}>{'v2.2.1'}</Text>
       </Box>
       <Menu items={getMenuItems()} onSelect={handleSelect} />
     </Panel>

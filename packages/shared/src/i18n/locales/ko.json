@@ -64,6 +64,8 @@
   "config.tabs.reviewers": "리뷰어",
   "config.tabs.supporters": "서포터",
   "config.tabs.moderator": "모더레이터",
+  "config.tabs.head": "헤드",
+  "config.tabs.settings": "설정",
   "config.tabs.presets": "프리셋",
   "config.tabs.apiKeys": "API 키",
   "config.noConfig": "설정 파일이 없습니다. 프리셋을 적용해서 시작하세요.",

@@ -64,6 +64,8 @@
   "config.tabs.reviewers": "Reviewers",
   "config.tabs.supporters": "Supporters",
   "config.tabs.moderator": "Moderator",
+  "config.tabs.head": "Head",
+  "config.tabs.settings": "Settings",
   "config.tabs.presets": "Presets",
   "config.tabs.apiKeys": "API Keys",
   "config.noConfig": "No config found. Apply a preset to get started.",

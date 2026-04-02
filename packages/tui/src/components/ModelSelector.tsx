@@ -1,9 +1,12 @@
 /**
- * ModelSelector — Searchable model picker with provider filtering and API key status.
+ * ModelSelector — Searchable model picker with smart defaults.
  *
- * Search supports:
- * - Free text: matches model name or ID
- * - "provider/" prefix: filters to that provider (e.g. "groq/" shows only groq models)
+ * UX improvements (v2.2.1, #445):
+ * - Shows available models immediately (API key detected providers first)
+ * - Tier replaced with practical info: context window + price
+ * - Search with visible cursor and placeholder
+ * - Selection confirmation feedback
+ * - "Show all" toggle for unavailable providers
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -26,6 +29,9 @@ interface ModelEntry {
   name: string;
   tier: string;
   context: string;
+  aa_price_input?: number;
+  aa_price_output?: number;
+  aa_speed_tps?: number;
 }
 
 export interface SelectedModel {
@@ -49,15 +55,18 @@ interface Props {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const TIER_ORDER: Record<string, number> = {
-  'S+': 0, S: 1, 'A+': 2, A: 3, 'A-': 4,
-  'B+': 5, B: 6, 'B-': 7, C: 8,
-};
+// ============================================================================
+// Helpers
+// ============================================================================
 
-const TIER_COLORS: Record<string, string> = {
-  'S+': 'magenta', S: 'red', 'A+': 'yellow', A: 'yellow', 'A-': 'yellow',
-  'B+': 'cyan', B: 'cyan', 'B-': 'cyan', C: 'gray',
-};
+function formatPrice(input?: number, output?: number): string {
+  if (input == null && output == null) return '';
+  if (input === 0 && output === 0) return 'FREE';
+  if (input != null && output != null) {
+    return `$${input}/$${output}`;
+  }
+  return '';
+}
 
 // ============================================================================
 // Component
@@ -67,16 +76,16 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
   const [search, setSearch] = useState(initialProvider ? `${initialProvider}/` : '');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loadedModels, setLoadedModels] = useState<ModelEntry[]>([]);
+  const [showAll, setShowAll] = useState(false);
+  const [confirmed, setConfirmed] = useState<SelectedModel | null>(null);
 
   const { rows } = getTerminalSize();
-  const visibleCount = Math.max(rows - 8, 8);
+  const visibleCount = Math.max(rows - 10, 6);
 
   useEffect(() => {
-    // Resolve via createRequire to work both in source and built output
     const require = createRequire(import.meta.url);
     const rankingsPath = (() => {
       try { return require.resolve('@codeagora/shared/data/model-rankings.json'); } catch {}
-      // Fallback: try relative to __dirname (source layout)
       return path.join(__dirname, '../../../shared/src/data/model-rankings.json');
     })();
     readFile(rankingsPath, 'utf-8')
@@ -84,27 +93,31 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
         const data = JSON.parse(raw) as { models?: ModelEntry[] };
         setLoadedModels(data.models ?? []);
       })
-      .catch(() => {
-        setLoadedModels([]);
-      });
+      .catch(() => setLoadedModels([]));
   }, []);
 
-  const allModels: ModelEntry[] = useMemo(() => {
-    const filtered = source && source !== 'all'
+  // Sort: available providers first, then by source name
+  const allModels = useMemo(() => {
+    let models = source && source !== 'all'
       ? loadedModels.filter(m => m.source === source)
       : loadedModels;
-    return filtered.slice().sort((a, b) => {
-      const ta = TIER_ORDER[a.tier] ?? 99;
-      const tb = TIER_ORDER[b.tier] ?? 99;
-      return ta - tb;
+
+    if (!showAll) {
+      models = models.filter(m => isProviderAvailable(m.source));
+    }
+
+    return models.slice().sort((a, b) => {
+      const aAvail = isProviderAvailable(a.source) ? 0 : 1;
+      const bAvail = isProviderAvailable(b.source) ? 0 : 1;
+      if (aAvail !== bAvail) return aAvail - bAvail;
+      return a.source.localeCompare(b.source) || a.name.localeCompare(b.name);
     });
-  }, [source, loadedModels]);
+  }, [source, loadedModels, showAll]);
 
   const filtered = useMemo(() => {
     if (!search) return allModels;
     const lower = search.toLowerCase();
 
-    // "provider/" prefix filtering
     const slashIdx = lower.indexOf('/');
     if (slashIdx > 0) {
       const providerQuery = lower.slice(0, slashIdx);
@@ -138,6 +151,11 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
   const visibleModels = filtered.slice(startOffset, endOffset);
 
   useInput((input, key) => {
+    if (confirmed) {
+      // Any key after confirmation dismisses
+      onSelect(confirmed);
+      return;
+    }
     if (key.escape) {
       onCancel();
       return;
@@ -145,13 +163,14 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
     if (key.return && filtered.length > 0) {
       const model = filtered[clampedIndex];
       if (model) {
-        onSelect({
+        const selected: SelectedModel = {
           id: model.model_id,
           name: model.name,
           tier: model.tier,
           context: model.context,
           source: model.source,
-        });
+        };
+        setConfirmed(selected);
       }
       return;
     }
@@ -161,6 +180,12 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
     }
     if (key.downArrow) {
       setSelectedIndex(i => Math.min(filtered.length - 1, i + 1));
+      return;
+    }
+    // Tab toggles show all
+    if (key.tab) {
+      setShowAll(s => !s);
+      setSelectedIndex(0);
       return;
     }
     if (key.backspace || key.delete) {
@@ -176,59 +201,99 @@ export function ModelSelector({ source, provider: initialProvider, onSelect, onC
     }
   });
 
-  const tierColor = (tier: string): string => TIER_COLORS[tier] ?? 'white';
+  // Confirmation screen
+  if (confirmed) {
+    return (
+      <Box flexDirection="column" paddingX={1}>
+        <Box marginBottom={1}>
+          <Text color={colors.success} bold>{icons.check} </Text>
+          <Text bold>{confirmed.source}/{confirmed.name}</Text>
+        </Box>
+        <Text dimColor>context: {confirmed.context} | {confirmed.id}</Text>
+        <Box marginTop={1}>
+          <Text dimColor>Press any key to continue</Text>
+        </Box>
+      </Box>
+    );
+  }
+
   const hasAbove = startOffset > 0;
   const hasBelow = endOffset < filtered.length;
+  const availableCount = loadedModels.filter(m => isProviderAvailable(m.source)).length;
+  const totalCount = loadedModels.length;
 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text bold color={colors.primary}>{t('model.selector.title')}</Text>
+
+      {/* Search bar */}
       <Box marginTop={0}>
-        <Text>{t('model.selector.search')}</Text>
-        <Text color={colors.primary}>{search}</Text>
-        <Text color={colors.muted}>_</Text>
-        <Text dimColor>  {t('model.selector.count').replace('{count}', String(filtered.length))}</Text>
+        <Text color={colors.muted}>{icons.arrow} </Text>
+        <Text>{search || ''}</Text>
+        <Text color={colors.primary}>|</Text>
+        {!search && <Text dimColor> type to search...</Text>}
+        <Text dimColor>  {filtered.length}/{showAll ? totalCount : availableCount} models</Text>
       </Box>
-      <Text dimColor>  {t('model.selector.tip')}</Text>
+
+      {/* Filter info */}
+      <Box>
+        <Text dimColor>
+          {showAll
+            ? `Showing all models (Tab: show available only)`
+            : `Showing ${availableCount} available (Tab: show all ${totalCount})`
+          }
+        </Text>
+      </Box>
+
+      {/* Model list */}
       <Box marginTop={1} flexDirection="column">
         {filtered.length === 0 ? (
-          <Text dimColor>{t('model.selector.noMatch')}</Text>
+          <Text dimColor>
+            {showAll ? 'No models match your search' : 'No available models. Press Tab to show all.'}
+          </Text>
         ) : (
           <>
-            {hasAbove ? (
-              <Text dimColor>{`  ${icons.arrowDown} ${startOffset} more above`}</Text>
-            ) : null}
+            {hasAbove && (
+              <Text dimColor>  {icons.arrowDown} {startOffset} more above</Text>
+            )}
             {visibleModels.map((model, vi) => {
               const realIndex = startOffset + vi;
               const isSelected = realIndex === clampedIndex;
-              const providerAvailable = isProviderAvailable(model.source);
-              const keyIcon = providerAvailable ? icons.check : icons.cross;
-              const keyColor = providerAvailable ? colors.success : colors.error;
+              const available = isProviderAvailable(model.source);
+              const price = formatPrice(model.aa_price_input, model.aa_price_output);
+
               return (
                 <Box key={`${model.source}-${model.model_id}`}>
-                  <Text color={isSelected ? colors.selection.bg : undefined} bold={isSelected}>
+                  <Text
+                    color={isSelected ? colors.primary : undefined}
+                    bold={isSelected}
+                    dimColor={!available && !isSelected}
+                  >
                     {isSelected ? `${icons.arrow} ` : '  '}
-                    <Text color={keyColor}>{keyIcon}</Text>
-                    {' '}[{model.tier.padEnd(2)}]
-                  </Text>
-                  <Text color={isSelected ? colors.selection.bg : tierColor(model.tier)} bold={isSelected}>
+                    <Text color={available ? colors.success : colors.error}>
+                      {available ? icons.check : icons.cross}
+                    </Text>
                     {' '}{model.name}
                   </Text>
                   <Text dimColor={!isSelected}>
-                    {' '}({model.source}) {model.context}
+                    {' '}
+                    <Text color={colors.muted}>({model.source})</Text>
+                    {' '}{model.context}
+                    {price && <Text color={price === 'FREE' ? colors.success : colors.muted}> {price}</Text>}
                   </Text>
                 </Box>
               );
             })}
-            {hasBelow ? (
-              <Text dimColor>{`  ${icons.arrowDown} ${filtered.length - endOffset} more below`}</Text>
-            ) : null}
+            {hasBelow && (
+              <Text dimColor>  {icons.arrowDown} {filtered.length - endOffset} more below</Text>
+            )}
           </>
         )}
       </Box>
+
       <Box marginTop={1}>
         <Text dimColor>
-          {t('model.selector.hints').replace('{check}', icons.check).replace('{cross}', icons.cross)}
+          {icons.check}=key set  {icons.cross}=no key  |  Enter: select  Esc: cancel  Tab: toggle all
         </Text>
       </Box>
     </Box>

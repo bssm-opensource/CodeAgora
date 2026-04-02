@@ -31,8 +31,8 @@ const TABS: Array<{ id: TabName; label: string }> = [
   { id: 'reviewers', label: t('config.tabs.reviewers') },
   { id: 'supporters', label: t('config.tabs.supporters') },
   { id: 'moderator', label: t('config.tabs.moderator') },
-  { id: 'head', label: 'Head' },
-  { id: 'settings', label: 'Settings' },
+  { id: 'head', label: t('config.tabs.head') },
+  { id: 'settings', label: t('config.tabs.settings') },
   { id: 'presets', label: t('config.tabs.presets') },
   { id: 'env', label: t('config.tabs.apiKeys') },
 ];

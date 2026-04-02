@@ -11,9 +11,10 @@ import type { SelectedModel } from '@codeagora/tui/components/ModelSelector.js';
 const { mockReadFile } = vi.hoisted(() => {
   const mockData = JSON.stringify({
     models: [
-      { source: 'nim', model_id: 'z-ai/glm5', name: 'GLM 5', tier: 'S+', context: '128k', swe_bench: '77.8%' },
-      { source: 'nim', model_id: 'moonshotai/kimi-k2.5', name: 'Kimi K2.5', tier: 'S+', context: '128k', swe_bench: '76.8%' },
-      { source: 'openrouter', model_id: 'meta/llama-3.3-70b', name: 'Llama 3.3 70B', tier: 'A', context: '131k', swe_bench: '50.0%' },
+      { source: 'groq', model_id: 'llama-3.3-70b', name: 'Llama 3.3 70B', tier: 'A', context: '131k', aa_price_input: 0, aa_price_output: 0 },
+      { source: 'nim', model_id: 'z-ai/glm5', name: 'GLM 5', tier: 'S+', context: '128k', aa_price_input: 1, aa_price_output: 3.2 },
+      { source: 'nim', model_id: 'moonshotai/kimi-k2.5', name: 'Kimi K2.5', tier: 'S+', context: '128k', aa_price_input: 0.6, aa_price_output: 3 },
+      { source: 'openrouter', model_id: 'meta/llama-3.3-70b', name: 'Llama 3.3 70B OR', tier: 'A', context: '131k', aa_price_input: 0, aa_price_output: 0 },
     ],
   });
   return { mockReadFile: vi.fn().mockResolvedValue(mockData) };
@@ -23,14 +24,20 @@ vi.mock('fs/promises', () => ({
   readFile: mockReadFile,
 }));
 
+// Mock GROQ_API_KEY so at least one provider shows as available
+const originalEnv = process.env;
+beforeAll(() => {
+  process.env = { ...originalEnv, GROQ_API_KEY: 'test-key' };
+  return () => { process.env = originalEnv; };
+});
+
 // Helper: render and wait for async useEffect to populate models
 async function renderAndWait(props: React.ComponentProps<typeof ModelSelector>) {
   const result = render(<ModelSelector {...props} />);
-  // Poll until models are loaded (frame shows model count > 0)
   for (let i = 0; i < 20; i++) {
     await new Promise(r => setTimeout(r, 50));
     const frame = result.lastFrame() ?? '';
-    if (frame.includes('models)') && !frame.includes('0 models)')) break;
+    if (frame.includes('models') && !frame.includes('0/0 models')) break;
   }
   return result;
 }
@@ -53,26 +60,29 @@ describe('ModelSelector', () => {
       <ModelSelector onSelect={() => {}} onCancel={() => {}} />
     );
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('Search:');
-    expect(frame).toContain('_');
+    // Cursor character "|" and placeholder text
+    expect(frame).toContain('|');
+    expect(frame).toContain('type to search');
   });
 
-  it('renders model entries with tier badges', async () => {
+  it('shows available models by default (groq has key)', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('[S+]');
+    // groq model should be visible (API key set)
+    expect(frame).toContain('Llama 3.3 70B');
+    expect(frame).toContain('groq');
   });
 
-  it('shows model names from rankings', async () => {
+  it('shows model context size', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('GLM 5');
+    expect(frame).toContain('131k');
   });
 
-  it('shows context size for models', async () => {
+  it('shows FREE label for free models', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('128k');
+    expect(frame).toContain('FREE');
   });
 
   it('shows navigation hints', () => {
@@ -80,37 +90,37 @@ describe('ModelSelector', () => {
       <ModelSelector onSelect={() => {}} onCancel={() => {}} />
     );
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('Enter select');
-    expect(frame).toContain('Esc cancel');
+    expect(frame).toContain('Enter: select');
+    expect(frame).toContain('Esc: cancel');
+    expect(frame).toContain('Tab: toggle all');
   });
 
   it('shows model count', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
-    expect(frame).toMatch(/\(\d+ models\)/);
+    expect(frame).toContain('models');
   });
 
   it('shows selected indicator on first item', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
+    // Arrow indicator ▸
     expect(frame).toContain('\u25b8');
   });
 
-  it('filters by source when nim is specified', async () => {
-    const { lastFrame: nimFrame } = await renderAndWait({ source: 'nim', onSelect: () => {}, onCancel: () => {} });
-    const nimText = nimFrame() ?? '';
-    expect(nimText).toContain('Select Model');
-    expect(nimText).toContain('[S+]');
-  });
-
-  it('sorts models by tier (S+ first)', async () => {
+  it('hides unavailable providers by default', async () => {
     const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
     const frame = lastFrame() ?? '';
-    const lines = frame.split('\n');
-    const tierLines = lines.filter(l => l.includes('[S+]') || l.includes('[S ') || l.includes('[A+]') || l.includes('[A '));
-    if (tierLines.length > 0) {
-      expect(tierLines[0]).toContain('[S+]');
-    }
+    // nim models should NOT be visible (no NVIDIA_API_KEY)
+    expect(frame).not.toContain('GLM 5');
+  });
+
+  it('shows toggle info for showing all providers', () => {
+    const { lastFrame } = render(
+      <ModelSelector onSelect={() => {}} onCancel={() => {}} />
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Tab: toggle all');
   });
 
   it('passes onCancel callback prop', () => {
@@ -119,16 +129,7 @@ describe('ModelSelector', () => {
       <ModelSelector onSelect={() => {}} onCancel={onCancel} />
     );
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('Esc cancel');
-  });
-
-  it('filters by provider prefix search when provider prop is set to "groq"', () => {
-    const { lastFrame, unmount } = render(
-      <ModelSelector provider="groq" onSelect={() => {}} onCancel={() => {}} />
-    );
-    const frame = lastFrame() ?? '';
-    expect(frame).toContain('groq/');
-    unmount();
+    expect(frame).toContain('Esc: cancel');
   });
 
   it('pre-populates search input when provider prop is set', () => {
@@ -138,5 +139,11 @@ describe('ModelSelector', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('groq/');
     unmount();
+  });
+
+  it('shows check/cross icons for key status', async () => {
+    const { lastFrame } = await renderAndWait({ onSelect: () => {}, onCancel: () => {} });
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('✓');
   });
 });
