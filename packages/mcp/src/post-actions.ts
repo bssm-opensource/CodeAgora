@@ -79,10 +79,9 @@ export async function postToGitHub(
   });
 
   const postResult = await postReview(ghConfig, prNumber, review);
-  const reviewUrl = typeof postResult === 'string' ? postResult : postResult?.url;
-  await setCommitStatus(ghConfig, headSha, result.summary.decision, reviewUrl as string);
+  await setCommitStatus(ghConfig, headSha, postResult.verdict, postResult.reviewUrl);
 
-  return { reviewUrl: reviewUrl ?? undefined };
+  return { reviewUrl: postResult.reviewUrl };
 }
 
 // ============================================================================
