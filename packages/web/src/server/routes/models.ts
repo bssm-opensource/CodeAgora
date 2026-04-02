@@ -71,7 +71,10 @@ async function loadBanditData(): Promise<BanditStoreData | null> {
   try {
     const content = await readFile(MODEL_QUALITY_PATH, 'utf-8');
     return JSON.parse(content) as BanditStoreData;
-  } catch {
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      console.error(`[models] model-quality.json is corrupted: ${err.message}`);
+    }
     return null;
   }
 }

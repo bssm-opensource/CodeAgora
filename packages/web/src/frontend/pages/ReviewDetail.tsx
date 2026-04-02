@@ -69,7 +69,7 @@ const statusClassMap: Record<string, string> = {
 export function ReviewDetail(): React.JSX.Element {
   const { date, id } = useParams<{ date: string; id: string }>();
 
-  const isValidParams = date && id && /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{3}$/.test(id);
+  const isValidParams = date && id && /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d+$/.test(id);
 
   const { data: session, loading, error } = useApi<SessionDetail>(
     isValidParams ? `/api/sessions/${date}/${id}` : '',

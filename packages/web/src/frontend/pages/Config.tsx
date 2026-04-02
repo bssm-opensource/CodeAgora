@@ -132,9 +132,8 @@ export function ConfigPage(): React.JSX.Element {
   const updateField = useCallback((path: string, value: unknown) => {
     setConfig((prev) => setNestedValue(prev, path, value));
 
-    // Validate the field
-    const fieldName = path.split('.').pop() ?? path;
-    const validationError = validateConfigField(fieldName, value);
+    // Validate using full path to avoid name collisions between sections
+    const validationError = validateConfigField(path, value);
     setErrors((prev) => {
       const next = { ...prev };
       if (validationError) {

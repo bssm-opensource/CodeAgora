@@ -77,7 +77,10 @@ costRoutes.get('/pricing', async (c) => {
     const pricingPath = path.join(process.cwd(), 'packages', 'shared', 'src', 'data', 'pricing.json');
     const content = await readFile(pricingPath, 'utf-8');
     return c.json(JSON.parse(content));
-  } catch {
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      return c.json({ error: 'Pricing data is corrupted (invalid JSON)' }, 500);
+    }
     return c.json({ error: 'Pricing data not found' }, 404);
   }
 });

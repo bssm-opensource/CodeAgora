@@ -61,13 +61,20 @@ configRoutes.put('/', async (c) => {
     configPath?.endsWith('.yaml') ||
     configPath?.endsWith('.yml');
 
-  if (isYaml) {
-    const targetPath = configPath ?? path.join(CA_ROOT, 'config.yaml');
-    const yamlContent = configToYaml(result.data as object);
-    await writeFile(targetPath, yamlContent, 'utf-8');
-  } else {
-    const targetPath = configPath ?? path.join(CA_ROOT, 'config.json');
-    await writeFile(targetPath, JSON.stringify(result.data, null, 2), 'utf-8');
+  try {
+    if (isYaml) {
+      const targetPath = configPath ?? path.join(CA_ROOT, 'config.yaml');
+      const yamlContent = configToYaml(result.data as object);
+      await writeFile(targetPath, yamlContent, 'utf-8');
+    } else {
+      const targetPath = configPath ?? path.join(CA_ROOT, 'config.json');
+      await writeFile(targetPath, JSON.stringify(result.data, null, 2), 'utf-8');
+    }
+  } catch (err) {
+    return c.json(
+      { error: 'Failed to write config file', details: err instanceof Error ? err.message : 'Unknown error' },
+      500,
+    );
   }
 
   return c.json({ status: 'saved' });

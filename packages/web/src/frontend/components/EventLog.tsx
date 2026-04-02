@@ -91,7 +91,8 @@ export function EventLog({ events }: EventLogProps): React.JSX.Element {
 
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      // Events are displayed newest-first (reversed), so scroll to top for latest
+      containerRef.current.scrollTop = 0;
     }
   }, [events.length]);
 

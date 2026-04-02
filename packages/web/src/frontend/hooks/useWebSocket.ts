@@ -38,7 +38,11 @@ export function useWebSocket(path: string): UseWebSocketResult {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const url = `${protocol}//${window.location.host}${path}`;
 
-      const ws = new WebSocket(url);
+      // Pass auth token via Sec-WebSocket-Protocol header.
+      // Dashboard token is injected into the page by the server or set via localStorage.
+      const token = localStorage.getItem('codeagora-token') ?? '';
+      const protocols = token ? [`Bearer-${token}`] : undefined;
+      const ws = protocols ? new WebSocket(url, protocols) : new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {

@@ -126,10 +126,15 @@ function isProgressEvent(data: unknown): data is ProgressEvent {
   return typeof obj.stage === 'string' && typeof obj.event === 'string' && typeof obj.progress === 'number';
 }
 
+const DISCUSSION_EVENT_TYPES = new Set([
+  'discussion-start', 'round-start', 'supporter-response',
+  'consensus-check', 'discussion-end', 'forced-decision', 'objection',
+]);
+
 function isDiscussionEvent(data: unknown): data is DiscussionEvent {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
-  return typeof obj.type === 'string' && obj.type.length > 0;
+  return typeof obj.type === 'string' && DISCUSSION_EVENT_TYPES.has(obj.type);
 }
 
 export function processProgressEvent(stages: StageState[], event: ProgressEvent): StageState[] {

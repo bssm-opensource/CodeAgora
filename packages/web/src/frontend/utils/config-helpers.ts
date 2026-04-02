@@ -92,7 +92,10 @@ function getFieldType(value: unknown): FieldType {
  * Validate a single config field value.
  * Returns an error message string, or null if valid.
  */
-function validateConfigField(field: string, value: unknown): string | null {
+function validateConfigField(fieldPath: string, value: unknown): string | null {
+  // Support both full dot-path ("discussion.maxRounds") and leaf name ("maxRounds")
+  const field = fieldPath.split('.').pop() ?? fieldPath;
+
   // Required field check — empty strings are invalid for most fields
   if (value === '' || value === undefined || value === null) {
     // Some fields are optional
