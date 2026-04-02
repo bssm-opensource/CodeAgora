@@ -39,10 +39,28 @@ server.tool(
       };
     } catch (err) {
       const error = err as Error & { stderr?: string; stdout?: string };
+
+      // CLI may exit non-zero on REJECT verdict or when --fail-on-reject is
+      // implicit. If stdout contains valid JSON with a successful pipeline
+      // result, treat it as success — not an error.
+      const stdout = error.stdout?.trim();
+      if (stdout) {
+        try {
+          const parsed = JSON.parse(stdout);
+          if (parsed && parsed.status === 'success') {
+            return {
+              content: [{ type: 'text' as const, text: stdout }],
+            };
+          }
+        } catch {
+          // Not valid JSON — fall through to error handling
+        }
+      }
+
       return {
         content: [{
           type: 'text' as const,
-          text: `Error running review: ${error.stderr || error.stdout || error.message}`,
+          text: `Error running review: ${error.stderr || stdout || error.message}`,
         }],
         isError: true,
       };

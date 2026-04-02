@@ -21020,10 +21020,22 @@ server.tool(
       };
     } catch (err) {
       const error2 = err;
+      const stdout2 = error2.stdout?.trim();
+      if (stdout2) {
+        try {
+          const parsed = JSON.parse(stdout2);
+          if (parsed && parsed.status === "success") {
+            return {
+              content: [{ type: "text", text: stdout2 }]
+            };
+          }
+        } catch {
+        }
+      }
       return {
         content: [{
           type: "text",
-          text: `Error running review: ${error2.stderr || error2.stdout || error2.message}`
+          text: `Error running review: ${error2.stderr || stdout2 || error2.message}`
         }],
         isError: true
       };
