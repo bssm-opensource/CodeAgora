@@ -96,10 +96,20 @@ export function validateWebhookUrl(url: string): void {
   }
 }
 
+/** Base delay in ms for exponential backoff between retry attempts. */
+const BACKOFF_BASE_MS = 1000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function postWebhook(url: string, body: unknown): Promise<void> {
   validateWebhookUrl(url);
-  const maxAttempts = 2;
+  const maxAttempts = 3;
   for (let i = 0; i < maxAttempts; i++) {
+    if (i > 0) {
+      await delay(BACKOFF_BASE_MS * Math.pow(2, i - 1)); // 1s, 2s
+    }
     try {
       const res = await fetch(url, {
         method: 'POST',

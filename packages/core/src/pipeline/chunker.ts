@@ -6,7 +6,7 @@
  * Single chunk when total tokens ≤ maxTokens (backward compat).
  */
 
-import { readFile } from 'fs/promises';
+import { readFile, stat } from 'fs/promises';
 import path from 'path';
 
 // ============================================================================
@@ -343,12 +343,25 @@ export function filterIgnoredFiles<T extends { filePath: string }>(
 }
 
 /**
+ * Maximum allowed file size for .reviewignore (1 MB).
+ * Prevents excessive memory usage from accidentally or maliciously large files.
+ */
+export const REVIEW_IGNORE_MAX_BYTES = 1024 * 1024; // 1 MB
+
+/**
  * Read .reviewignore patterns from CWD.
- * Returns empty array if file doesn't exist.
+ * Returns empty array if file doesn't exist or exceeds the size limit.
  */
 export async function loadReviewIgnorePatterns(cwd?: string): Promise<string[]> {
   const filePath = path.join(cwd ?? process.cwd(), '.reviewignore');
   try {
+    const fileStat = await stat(filePath);
+    if (fileStat.size > REVIEW_IGNORE_MAX_BYTES) {
+      console.warn(
+        `[reviewignore] .reviewignore exceeds size limit (${fileStat.size} bytes > ${REVIEW_IGNORE_MAX_BYTES} bytes) — skipping`
+      );
+      return [];
+    }
     const content = await readFile(filePath, 'utf-8');
     return content
       .split('\n')

@@ -2,7 +2,7 @@
  * Pipeline Chunker — splitLargeFile boundaries, loadReviewIgnorePatterns when file absent
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm, writeFile, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
@@ -13,6 +13,7 @@ import {
   filterIgnoredFiles,
   loadReviewIgnorePatterns,
   chunkDiff,
+  REVIEW_IGNORE_MAX_BYTES,
 } from '../pipeline/chunker.js';
 
 // ============================================================================
@@ -198,6 +199,31 @@ describe('loadReviewIgnorePatterns', () => {
     );
     const patterns = await loadReviewIgnorePatterns(tmpDir);
     expect(patterns).toEqual(['dist/**', '*.js']);
+  });
+
+  it('returns empty array and warns when file exceeds size limit', async () => {
+    const oversized = 'a'.repeat(REVIEW_IGNORE_MAX_BYTES + 1);
+    await writeFile(path.join(tmpDir, '.reviewignore'), oversized, 'utf-8');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const patterns = await loadReviewIgnorePatterns(tmpDir);
+
+    expect(patterns).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('.reviewignore exceeds size limit'),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('reads file normally when exactly at size limit', async () => {
+    const content = 'dist/**\n'.repeat(100);
+    // Ensure content is under the limit (sanity check)
+    expect(Buffer.byteLength(content, 'utf-8')).toBeLessThanOrEqual(REVIEW_IGNORE_MAX_BYTES);
+
+    await writeFile(path.join(tmpDir, '.reviewignore'), content, 'utf-8');
+    const patterns = await loadReviewIgnorePatterns(tmpDir);
+    expect(patterns.length).toBeGreaterThan(0);
+    expect(patterns).toContain('dist/**');
   });
 });
 

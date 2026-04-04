@@ -4,6 +4,7 @@
  * LRU eviction at MAX_ENTRIES to prevent unbounded growth.
  */
 
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -52,11 +53,23 @@ export async function readCacheIndex(caRoot: string): Promise<CacheIndex> {
 }
 
 /**
- * Write the cache index to .ca/cache-index.json.
+ * Write the cache index to .ca/cache-index.json atomically.
+ * Writes to a temporary file first, then renames to the target path.
+ * fs.rename is atomic on POSIX filesystems when src and dest are on
+ * the same filesystem, preventing partial writes on crash.
  */
 export async function writeCacheIndex(caRoot: string, index: CacheIndex): Promise<void> {
   const indexPath = path.join(caRoot, CACHE_INDEX_FILE);
-  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+  const tmpPath = path.join(caRoot, `${CACHE_INDEX_FILE}.${crypto.randomUUID()}.tmp`);
+
+  try {
+    await fs.writeFile(tmpPath, JSON.stringify(index, null, 2), 'utf-8');
+    await fs.rename(tmpPath, indexPath);
+  } catch (err) {
+    // Best-effort cleanup of the temp file if rename failed
+    await fs.unlink(tmpPath).catch(() => {});
+    throw err;
+  }
 }
 
 /**

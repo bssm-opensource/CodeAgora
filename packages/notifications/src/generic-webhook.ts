@@ -82,23 +82,34 @@ export async function sendGenericWebhook(
     .update(body)
     .digest('hex');
 
-  try {
-    const res = await fetch(config.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CodeAgora-Event': event,
-        'X-CodeAgora-Signature': `sha256=${signature}`,
-      },
-      body,
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) {
-      process.stderr.write(`[codeagora] Generic webhook returned ${res.status}\n`);
+  const maxAttempts = 3;
+  const backoffBaseMs = 1000;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    if (i > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, backoffBaseMs * Math.pow(2, i - 1)));
     }
-  } catch (err) {
-    process.stderr.write(
-      `[codeagora] Generic webhook failed: ${err instanceof Error ? err.message : String(err)}\n`,
-    );
+    try {
+      const res = await fetch(config.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CodeAgora-Event': event,
+          'X-CodeAgora-Signature': `sha256=${signature}`,
+        },
+        body,
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) return;
+      if (i === maxAttempts - 1) {
+        process.stderr.write(`[codeagora] Generic webhook returned ${res.status}\n`);
+      }
+    } catch (err) {
+      if (i === maxAttempts - 1) {
+        process.stderr.write(
+          `[codeagora] Generic webhook failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }
+    }
   }
 }

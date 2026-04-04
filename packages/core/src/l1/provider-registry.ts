@@ -25,8 +25,10 @@ import type { LanguageModel } from 'ai';
 /** A callable that returns a LanguageModel for a given model ID. */
 type ProviderInstance = (modelId: string) => LanguageModel;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toProviderInstance(provider: any): ProviderInstance {
+/** An AI SDK provider callable — all SDK factory functions return objects with this call signature. */
+type CallableProvider = (modelId: string) => LanguageModel;
+
+function toProviderInstance(provider: CallableProvider): ProviderInstance {
   return (modelId: string): LanguageModel => provider(modelId);
 }
 

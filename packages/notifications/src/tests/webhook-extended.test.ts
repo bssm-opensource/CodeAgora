@@ -157,6 +157,7 @@ describe('sendNotifications() — multi-target', () => {
   });
 
   it('resolves even when Slack fetch rejects (allSettled)', async () => {
+    vi.useFakeTimers();
     mockFetch
       .mockResolvedValueOnce({ ok: true, status: 200 })  // Discord succeeds
       .mockRejectedValue(new Error('Slack network error')); // Slack fails (with retries)
@@ -166,12 +167,17 @@ describe('sendNotifications() — multi-target', () => {
       slack: { webhookUrl: SLACK_URL },
     };
 
-    await expect(sendNotifications(config, makePayload())).resolves.toBeUndefined();
-    // Both were attempted (Discord=1, Slack retries up to maxAttempts=2, total ≥ 2)
+    const promise = sendNotifications(config, makePayload());
+    // Advance past all backoff delays (1s + 2s)
+    await vi.advanceTimersByTimeAsync(4000);
+    await expect(promise).resolves.toBeUndefined();
+    // Both were attempted (Discord=1, Slack retries up to maxAttempts=3, total ≥ 2)
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2);
+    vi.useRealTimers();
   });
 
   it('resolves even when Discord fetch rejects (allSettled)', async () => {
+    vi.useFakeTimers();
     mockFetch
       .mockRejectedValueOnce(new Error('Discord network error')) // Discord fails
       .mockResolvedValueOnce({ ok: true, status: 200 }); // Slack succeeds
@@ -181,7 +187,10 @@ describe('sendNotifications() — multi-target', () => {
       slack: { webhookUrl: SLACK_URL },
     };
 
-    await expect(sendNotifications(config, makePayload())).resolves.toBeUndefined();
+    const promise = sendNotifications(config, makePayload());
+    await vi.advanceTimersByTimeAsync(4000);
+    await expect(promise).resolves.toBeUndefined();
+    vi.useRealTimers();
   });
 
   it('resolves when config is completely empty', async () => {

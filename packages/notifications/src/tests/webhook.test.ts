@@ -123,17 +123,35 @@ describe('sendDiscordNotification', () => {
     expect(fieldNames).toContain('Severity Counts');
   });
 
-  it('retries once on non-ok response without throwing', async () => {
+  it('retries with exponential backoff on non-ok response without throwing', async () => {
+    vi.useFakeTimers();
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
-    // Should not throw
-    await expect(sendDiscordNotification(DISCORD_URL, makePayload())).resolves.toBeUndefined();
-    // Two attempts (maxAttempts = 2)
+
+    const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+
+    // First attempt fires immediately
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // After 1s backoff → second attempt
+    await vi.advanceTimersByTimeAsync(1000);
     expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // After 2s backoff → third attempt
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    await promise;
+    vi.useRealTimers();
   });
 
   it('does not throw when fetch itself rejects', async () => {
+    vi.useFakeTimers();
     mockFetch.mockRejectedValue(new Error('Network error'));
-    await expect(sendDiscordNotification(DISCORD_URL, makePayload())).resolves.toBeUndefined();
+    const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+    await vi.advanceTimersByTimeAsync(4000);
+    await expect(promise).resolves.toBeUndefined();
+    vi.useRealTimers();
   });
 
   it('throws for invalid webhook URL (HTTP)', async () => {
@@ -256,8 +274,12 @@ describe('sendSlackNotification', () => {
   });
 
   it('does not throw when fetch itself rejects', async () => {
+    vi.useFakeTimers();
     mockFetch.mockRejectedValue(new Error('Network error'));
-    await expect(sendSlackNotification(SLACK_URL, makePayload())).resolves.toBeUndefined();
+    const promise = sendSlackNotification(SLACK_URL, makePayload());
+    await vi.advanceTimersByTimeAsync(4000);
+    await expect(promise).resolves.toBeUndefined();
+    vi.useRealTimers();
   });
 });
 

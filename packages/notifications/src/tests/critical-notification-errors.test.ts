@@ -127,59 +127,74 @@ describe('WH-002: empty reasoning string in Discord embed', () => {
 // WH-003: both retry attempts fail → logs to stderr, does not throw
 // ============================================================================
 
-describe('WH-003: both retry attempts fail → stderr logged, no throw', () => {
+describe('WH-003: all retry attempts fail → stderr logged, no throw', () => {
   it('does not throw when all fetch attempts return non-ok status', async () => {
+    vi.useFakeTimers();
     mockFetch.mockResolvedValue({ ok: false, status: 503 });
 
-    await expect(
-      sendDiscordNotification(DISCORD_URL, makePayload()),
-    ).resolves.toBeUndefined();
+    const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+    // Advance past all backoff delays (1s + 2s)
+    await vi.advanceTimersByTimeAsync(4000);
+    await expect(promise).resolves.toBeUndefined();
 
-    // maxAttempts = 2
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // maxAttempts = 3
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
   });
 
   it('writes to stderr after last failed attempt (non-ok response)', async () => {
+    vi.useFakeTimers();
     mockFetch.mockResolvedValue({ ok: false, status: 503 });
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      await sendDiscordNotification(DISCORD_URL, makePayload());
-      // After 2 failed attempts, stderr should be written
+      const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+      await vi.advanceTimersByTimeAsync(4000);
+      await promise;
+      // After 3 failed attempts, stderr should be written
       expect(stderrSpy).toHaveBeenCalled();
       const message = String(stderrSpy.mock.calls[0]![0]);
       expect(message).toContain('503');
     } finally {
       stderrSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 
   it('writes to stderr after last failed attempt (fetch throws)', async () => {
+    vi.useFakeTimers();
     mockFetch.mockRejectedValue(new Error('Connection refused'));
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      await sendDiscordNotification(DISCORD_URL, makePayload());
+      const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+      await vi.advanceTimersByTimeAsync(4000);
+      await promise;
       expect(stderrSpy).toHaveBeenCalled();
       const message = String(stderrSpy.mock.calls[0]![0]);
       expect(message).toContain('Connection refused');
     } finally {
       stderrSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 
   it('does not write to stderr on first attempt failure when second succeeds', async () => {
+    vi.useFakeTimers();
     mockFetch
       .mockResolvedValueOnce({ ok: false, status: 429 })
       .mockResolvedValueOnce({ ok: true, status: 200 });
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      await sendDiscordNotification(DISCORD_URL, makePayload());
+      const promise = sendDiscordNotification(DISCORD_URL, makePayload());
+      await vi.advanceTimersByTimeAsync(2000);
+      await promise;
       // Second attempt succeeded — stderr should NOT be written
       expect(stderrSpy).not.toHaveBeenCalled();
     } finally {
       stderrSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 });

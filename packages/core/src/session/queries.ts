@@ -114,6 +114,10 @@ export async function listSessions(
   }
 
   const results: SessionEntry[] = [];
+  // Cache metadata per session dirPath to avoid redundant file reads (#283)
+  const metadataCache = new Map<string, Record<string, unknown> | null>();
+  // Cache verdict per session dirPath (populated lazily by keyword/sort)
+  const verdictCache = new Map<string, Record<string, unknown> | null>();
 
   for (const dateDir of dateDirs) {
     const datePath = path.join(sessionsDir, dateDir);
@@ -145,6 +149,7 @@ export async function listSessions(
 
       const metadataPath = path.join(sessionPath, 'metadata.json');
       const metadata = await readJsonFile(metadataPath);
+      metadataCache.set(sessionPath, metadata);
       const status = metadata && typeof metadata['status'] === 'string'
         ? metadata['status']
         : 'unknown';
@@ -176,8 +181,12 @@ export async function listSessions(
     const kw = options.keyword.toLowerCase();
     const matched: SessionEntry[] = [];
     for (const entry of filtered) {
-      const metadata = await readJsonFile(path.join(entry.dirPath, 'metadata.json'));
-      const verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
+      const metadata = metadataCache.get(entry.dirPath) ?? null;
+      let verdict = verdictCache.get(entry.dirPath);
+      if (verdict === undefined) {
+        verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
+        verdictCache.set(entry.dirPath, verdict);
+      }
       const haystack = (
         (metadata ? JSON.stringify(metadata) : '') +
         (verdict ? JSON.stringify(verdict) : '')
@@ -197,7 +206,11 @@ export async function listSessions(
     // Read verdict files to count issues, then sort descending
     const withCounts = await Promise.all(
       filtered.map(async (entry) => {
-        const verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
+        let verdict = verdictCache.get(entry.dirPath);
+        if (verdict === undefined) {
+          verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
+          verdictCache.set(entry.dirPath, verdict);
+        }
         const count = verdict ? extractIssueObjects(verdict).length : 0;
         return { entry, count };
       })
