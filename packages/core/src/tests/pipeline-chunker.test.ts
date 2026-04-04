@@ -216,9 +216,12 @@ describe('loadReviewIgnorePatterns', () => {
   });
 
   it('reads file normally when exactly at size limit', async () => {
-    const content = 'dist/**\n'.repeat(100);
-    // Ensure content is under the limit (sanity check)
-    expect(Buffer.byteLength(content, 'utf-8')).toBeLessThanOrEqual(REVIEW_IGNORE_MAX_BYTES);
+    // Create a file of exactly REVIEW_IGNORE_MAX_BYTES bytes
+    const line = 'dist/**\n';
+    const fullLines = line.repeat(Math.floor(REVIEW_IGNORE_MAX_BYTES / Buffer.byteLength(line, 'utf-8')));
+    const padding = 'x'.repeat(REVIEW_IGNORE_MAX_BYTES - Buffer.byteLength(fullLines, 'utf-8'));
+    const content = fullLines + padding;
+    expect(Buffer.byteLength(content, 'utf-8')).toBe(REVIEW_IGNORE_MAX_BYTES);
 
     await writeFile(path.join(tmpDir, '.reviewignore'), content, 'utf-8');
     const patterns = await loadReviewIgnorePatterns(tmpDir);

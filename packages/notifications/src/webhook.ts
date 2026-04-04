@@ -118,6 +118,12 @@ async function postWebhook(url: string, body: unknown): Promise<void> {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) return;
+      // Don't retry client errors (4xx) — they will never succeed
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        const redacted = (() => { try { return new URL(url).hostname; } catch { return '[invalid-url]'; } })();
+        process.stderr.write(`[codeagora] webhook returned ${res.status} (${redacted}), not retrying\n`);
+        return;
+      }
       if (i === maxAttempts - 1) {
         const redacted = (() => { try { return new URL(url).hostname; } catch { return '[invalid-url]'; } })();
         process.stderr.write(`[codeagora] webhook returned ${res.status} (${redacted})\n`);

@@ -101,6 +101,11 @@ export async function sendGenericWebhook(
         signal: AbortSignal.timeout(10000),
       });
       if (res.ok) return;
+      // Don't retry client errors (4xx) — they will never succeed
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        process.stderr.write(`[codeagora] Generic webhook returned ${res.status}, not retrying\n`);
+        return;
+      }
       if (i === maxAttempts - 1) {
         process.stderr.write(`[codeagora] Generic webhook returned ${res.status}\n`);
       }
