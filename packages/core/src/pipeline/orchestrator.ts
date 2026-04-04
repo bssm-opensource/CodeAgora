@@ -3,7 +3,7 @@
  * Connects all layers: L1 → L2 → L3
  */
 
-import { SessionManager } from '../session/manager.js';
+import { SessionManager, recoverStaleSessions } from '../session/manager.js';
 import { loadConfig, normalizeConfig } from '../config/loader.js';
 import { groupDiff } from '../l3/grouping.js';
 import { executeReviewers, checkForfeitThreshold } from '../l1/reviewer.js';
@@ -533,6 +533,9 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
   const telemetry = new PipelineTelemetry();
 
   try {
+    // Recover any stale in_progress sessions from previous crashes
+    await recoverStaleSessions().catch(() => {});
+
     // Load credentials from ~/.config/codeagora/credentials
     const { loadCredentials } = await import('../config/credentials.js');
     await loadCredentials();
@@ -555,8 +558,9 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       config.errorHandling.maxRetries = Math.min(config.errorHandling.maxRetries, 1);
     }
 
-    // Create session
+    // Create session and register signal handlers for graceful cleanup
     session = await SessionManager.create(input.diffPath);
+    session.registerCleanup();
     const date = session.getDate();
     const sessionId = session.getSessionId();
 
@@ -811,12 +815,12 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       progress?.stageComplete('discuss', 'Discussions complete');
     }
 
-    // Write moderator report
-    await writeModeratorReport(date, sessionId, moderatorReport);
     await writeSuggestions(date, sessionId, thresholdResult.suggestions);
 
     // === LIGHTWEIGHT MODE: Skip L3 head verdict (6.2) ===
     if (input.skipHead) {
+      // No L3 promoted-issue mutation in lightweight mode — safe to write here
+      await writeModeratorReport(date, sessionId, moderatorReport);
       await session.setStatus('completed');
       progress?.stageComplete('verdict', 'Skipped (lightweight mode)');
       const severityCounts: Record<string, number> = {};
@@ -858,6 +862,8 @@ export async function runPipeline(input: PipelineInput, progress?: ProgressEmitt
       latencyMs: Date.now() - l3Start,
       success: true,
     });
+    // Write moderator report AFTER L3 promoted-issue mutation (#299)
+    await writeModeratorReport(date, sessionId, moderatorReport);
     await writeHeadVerdict(date, sessionId, headVerdict);
     progress?.stageComplete('verdict', 'Verdict complete');
 

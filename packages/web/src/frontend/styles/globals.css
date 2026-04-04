@@ -318,6 +318,11 @@ a:hover {
   color: var(--color-error);
 }
 
+.status-badge--interrupted {
+  background-color: rgba(227, 179, 65, 0.15);
+  color: #e3b341;
+}
+
 /* ============================================================================
    Filter Bar
    ============================================================================ */
@@ -3648,6 +3653,11 @@ a:hover {
 .status-badge--failed {
   background-color: rgba(248, 81, 73, 0.15);
   color: var(--color-error);
+}
+
+.status-badge--interrupted {
+  background-color: rgba(227, 179, 65, 0.15);
+  color: #e3b341;
 }
 
 /* ============================================================================

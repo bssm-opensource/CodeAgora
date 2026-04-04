@@ -21,12 +21,14 @@ const STATUS_CLASS: Record<string, string> = {
   in_progress: 'status-badge--in-progress',
   completed: 'status-badge--completed',
   failed: 'status-badge--failed',
+  interrupted: 'status-badge--interrupted',
 };
 
 const STATUS_LABEL: Record<string, string> = {
   in_progress: 'In Progress',
   completed: 'Completed',
   failed: 'Failed',
+  interrupted: 'Interrupted',
 };
 
 function sessionKey(s: SessionMetadata): string {

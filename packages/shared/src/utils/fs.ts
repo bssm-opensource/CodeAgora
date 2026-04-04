@@ -248,7 +248,7 @@ export async function updateSessionStatus(
 ): Promise<void> {
   const metadata = await readSessionMetadata(date, sessionId);
   metadata.status = status;
-  if (status === 'completed' || status === 'failed') {
+  if (status === 'completed' || status === 'failed' || status === 'interrupted') {
     metadata.completedAt = Date.now();
   }
   await writeSessionMetadata(date, sessionId, metadata);

@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 interface SessionInfo {
   sessionId: string;
   date: string;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'in_progress' | 'completed' | 'failed' | 'interrupted';
   diffPath: string;
   timestamp: number;
 }
@@ -27,6 +27,8 @@ function statusLabel(status: string): string {
       return 'In Progress';
     case 'failed':
       return 'Failed';
+    case 'interrupted':
+      return 'Interrupted';
     default:
       return status;
   }
@@ -40,6 +42,8 @@ function statusClass(status: string): string {
       return 'status-badge--in-progress';
     case 'failed':
       return 'status-badge--failed';
+    case 'interrupted':
+      return 'status-badge--interrupted';
     default:
       return '';
   }

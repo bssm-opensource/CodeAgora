@@ -22,6 +22,7 @@ vi.mock('../../packages/core/src/session/manager.js', () => ({
   SessionManager: {
     create: vi.fn(),
   },
+  recoverStaleSessions: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../packages/core/src/l1/reviewer.js', () => ({
@@ -159,6 +160,7 @@ const mockSession = {
   getDate: vi.fn().mockReturnValue('2026-01-15'),
   getSessionId: vi.fn().mockReturnValue('001'),
   setStatus: vi.fn().mockResolvedValue(undefined),
+  registerCleanup: vi.fn(),
 };
 
 const mockLogger = {

@@ -16,7 +16,7 @@ interface SessionMetadata {
   date: string;
   timestamp: number;
   diffPath: string;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'in_progress' | 'completed' | 'failed' | 'interrupted';
   startedAt: number;
   completedAt?: number;
 }

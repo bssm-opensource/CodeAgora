@@ -8,14 +8,14 @@ export interface SessionMetadata {
   date: string;
   timestamp: number;
   diffPath: string;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'in_progress' | 'completed' | 'failed' | 'interrupted';
   startedAt: number;
   completedAt?: number;
 }
 
 export interface SessionFilters {
   search: string;
-  status: 'all' | 'in_progress' | 'completed' | 'failed';
+  status: 'all' | 'in_progress' | 'completed' | 'failed' | 'interrupted';
   dateFrom: string;
   dateTo: string;
 }

@@ -8,7 +8,7 @@ import React from 'react';
 interface SessionInfo {
   sessionId: string;
   date: string;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'in_progress' | 'completed' | 'failed' | 'interrupted';
 }
 
 interface CostInfo {

@@ -57,6 +57,7 @@ export function SessionFilters({ filters, onFilterChange }: SessionFiltersProps)
         <option value="in_progress">In Progress</option>
         <option value="completed">Completed</option>
         <option value="failed">Failed</option>
+        <option value="interrupted">Interrupted</option>
       </select>
 
       <input

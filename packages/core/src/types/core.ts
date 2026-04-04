@@ -159,7 +159,7 @@ export interface SessionMetadata {
   date: string; // YYYY-MM-DD
   timestamp: number;
   diffPath: string;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'in_progress' | 'completed' | 'failed' | 'interrupted';
   startedAt: number;
   completedAt?: number;
   /** SHA-256 prefix of the diff content (cache key component) */

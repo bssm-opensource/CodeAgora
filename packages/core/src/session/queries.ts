@@ -36,7 +36,7 @@ export interface SessionDiff {
 
 export interface ListOptions {
   limit?: number;
-  status?: string;   // 'completed' | 'failed' | 'in_progress'
+  status?: string;   // 'completed' | 'failed' | 'in_progress' | 'interrupted'
   after?: string;    // 'YYYY-MM-DD'
   before?: string;   // 'YYYY-MM-DD'
   sort?: string;     // 'date' (default) | 'status' | 'issues'
@@ -48,6 +48,7 @@ export interface SessionStats {
   completed: number;
   failed: number;
   inProgress: number;
+  interrupted: number;
   /** Percentage 0-100, one decimal precision */
   successRate: number;
   severityDistribution: Record<string, number>;
@@ -114,10 +115,6 @@ export async function listSessions(
   }
 
   const results: SessionEntry[] = [];
-  // Cache metadata per session dirPath to avoid redundant file reads (#283)
-  const metadataCache = new Map<string, Record<string, unknown> | null>();
-  // Cache verdict per session dirPath (populated lazily by keyword/sort)
-  const verdictCache = new Map<string, Record<string, unknown> | null>();
 
   for (const dateDir of dateDirs) {
     const datePath = path.join(sessionsDir, dateDir);
@@ -149,7 +146,6 @@ export async function listSessions(
 
       const metadataPath = path.join(sessionPath, 'metadata.json');
       const metadata = await readJsonFile(metadataPath);
-      metadataCache.set(sessionPath, metadata);
       const status = metadata && typeof metadata['status'] === 'string'
         ? metadata['status']
         : 'unknown';
@@ -181,12 +177,8 @@ export async function listSessions(
     const kw = options.keyword.toLowerCase();
     const matched: SessionEntry[] = [];
     for (const entry of filtered) {
-      const metadata = metadataCache.get(entry.dirPath) ?? null;
-      let verdict = verdictCache.get(entry.dirPath);
-      if (verdict === undefined) {
-        verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
-        verdictCache.set(entry.dirPath, verdict);
-      }
+      const metadata = await readJsonFile(path.join(entry.dirPath, 'metadata.json'));
+      const verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
       const haystack = (
         (metadata ? JSON.stringify(metadata) : '') +
         (verdict ? JSON.stringify(verdict) : '')
@@ -206,11 +198,7 @@ export async function listSessions(
     // Read verdict files to count issues, then sort descending
     const withCounts = await Promise.all(
       filtered.map(async (entry) => {
-        let verdict = verdictCache.get(entry.dirPath);
-        if (verdict === undefined) {
-          verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
-          verdictCache.set(entry.dirPath, verdict);
-        }
+        const verdict = await readJsonFile(path.join(entry.dirPath, 'head-verdict.json'));
         const count = verdict ? extractIssueObjects(verdict).length : 0;
         return { entry, count };
       })
@@ -239,6 +227,7 @@ export async function getSessionStats(baseDir: string): Promise<SessionStats> {
       completed: 0,
       failed: 0,
       inProgress: 0,
+      interrupted: 0,
       successRate: 0,
       severityDistribution: {},
     };
@@ -248,6 +237,7 @@ export async function getSessionStats(baseDir: string): Promise<SessionStats> {
   let completed = 0;
   let failed = 0;
   let inProgress = 0;
+  let interrupted = 0;
   const severityDistribution: Record<string, number> = {};
 
   for (const dateDir of dateDirs) {
@@ -287,6 +277,7 @@ export async function getSessionStats(baseDir: string): Promise<SessionStats> {
       if (status === 'completed') completed++;
       else if (status === 'failed') failed++;
       else if (status === 'in_progress') inProgress++;
+      else if (status === 'interrupted') interrupted++;
 
       const verdict = await readJsonFile(path.join(sessionPath, 'head-verdict.json'));
       if (verdict) {
@@ -302,7 +293,7 @@ export async function getSessionStats(baseDir: string): Promise<SessionStats> {
     ? Math.round((completed / totalSessions) * 1000) / 10
     : 0;
 
-  return { totalSessions, completed, failed, inProgress, successRate, severityDistribution };
+  return { totalSessions, completed, failed, inProgress, interrupted, successRate, severityDistribution };
 }
 
 /**
@@ -370,6 +361,7 @@ export function formatSessionStats(stats: SessionStats): string {
   lines.push(`Total sessions:  ${stats.totalSessions}`);
   lines.push(`Completed:       ${stats.completed} (${stats.successRate.toFixed(1)}%)`);
   lines.push(`Failed:          ${stats.failed}${pct(stats.failed)}`);
+  lines.push(`Interrupted:     ${stats.interrupted}${pct(stats.interrupted)}`);
   lines.push(`In Progress:     ${stats.inProgress}${pct(stats.inProgress)}`);
 
   lines.push('');
